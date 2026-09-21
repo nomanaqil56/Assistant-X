@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AssistantX" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- True Translucent / Transparent Window Overlay Configuration -->
+    <!-- Dialog-based Overlay Theme: Forces Android WindowManager to keep the underlying screen live -->
+    <style name="Theme.AssistantX" parent="android:Theme.Material.Light.Dialog.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackground">@android:color/transparent</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsFloating">false</item>
-        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowShowWallpaper">true</item>
         
-        <!-- Prevent Android Launcher from drawing opaque preview windows or splashscreens -->
+        <!-- Soft dimmed backdrop over your real screen -->
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.45</item>
+        
+        <!-- Disable opaque launcher preview & splash screen -->
         <item name="android:windowDisablePreview">true</item>
         <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
         <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         
-        <!-- System Bar Transparency -->
+        <!-- System bar transparency -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
