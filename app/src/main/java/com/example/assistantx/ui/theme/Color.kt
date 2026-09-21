@@ -2,7 +2,8 @@ package com.example.assistantx.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BlackBackground = Color(0xFF030508)
+val TransparentBackground = Color.Transparent
+val BlackBackground = Color.Transparent
 val DarkBackground = Color(0xFF070A0F)
 val GlassSurface = Color(0xCC0E141E)
 val GlassSurfaceSecondary = Color(0x99141D2B)
