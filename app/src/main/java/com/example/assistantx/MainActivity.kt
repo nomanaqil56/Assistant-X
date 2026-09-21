@@ -1,35 +1,43 @@
 package com.example.assistantx
 
+import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.core.view.WindowCompat
 import com.example.assistantx.ui.screens.AssistantOverlayScreen
 import com.example.assistantx.ui.theme.AssistantXTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Ensure the Activity window is fully transparent
-        window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
-        enableEdgeToEdge()
+
+        // 1. Force window background and decorView to be 100% transparent
+        window.setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
+        window.decorView.setBackgroundColor(AndroidColor.TRANSPARENT)
+
+        // 2. Disable system contrast enforcement so Android doesn't add black scrims
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
+
+        // 3. Clear any flags that cause solid backgrounds
+        window.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             AssistantXTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.Transparent
-                ) {
-                    AssistantOverlayScreen(
-                        onDismiss = { finish() }
-                    )
-                }
+                AssistantOverlayScreen(
+                    onDismiss = { finish() }
+                )
             }
         }
     }

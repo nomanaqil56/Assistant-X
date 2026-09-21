@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +27,7 @@ import com.example.assistantx.ui.theme.AssistantXTheme
 
 /**
  * Assistant X Floating Overlay Screen.
- * Renders only the floating frosted glass card and left navigation rail over the user's screen.
+ * Perfectly centered on the screen with a 100% transparent backdrop over your underlying apps/homescreen.
  */
 @Composable
 fun AssistantOverlayScreen(
@@ -50,9 +51,10 @@ fun AssistantOverlayScreen(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Floating glass layout: Navigation Rail + Assistant Card
+        // Centered Floating glass layout: Navigation Rail + Assistant Card
         Row(
             modifier = Modifier
+                .widthIn(max = 430.dp)
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp)
                 // Consume clicks on the card so tapping inside doesn't dismiss
