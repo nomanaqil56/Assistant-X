@@ -4,7 +4,6 @@ import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -21,16 +20,17 @@ class MainActivity : ComponentActivity() {
         window.setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
         window.decorView.setBackgroundColor(AndroidColor.TRANSPARENT)
 
-        // 2. Disable system contrast enforcement so Android doesn't add black scrims
+        // 2. Disable system contrast enforcement so Android does not inject black scrims
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
             window.isStatusBarContrastEnforced = false
         }
 
-        // 3. Clear any flags that cause solid backgrounds
-        window.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-
+        // 3. Configure modern Edge-to-Edge transparency
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        )
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
