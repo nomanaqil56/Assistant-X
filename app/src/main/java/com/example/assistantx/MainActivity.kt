@@ -10,7 +10,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.assistantx.ui.screens.AssistantHomeScreen
 import com.example.assistantx.ui.theme.AssistantXTheme
-import com.example.assistantx.ui.theme.BlackBackground
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,7 +19,7 @@ class MainActivity : ComponentActivity() {
             AssistantXTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = BlackBackground
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     AssistantHomeScreen()
                 }
