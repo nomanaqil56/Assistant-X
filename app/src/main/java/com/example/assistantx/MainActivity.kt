@@ -45,6 +45,9 @@ class MainActivity : ComponentActivity() {
         commandEngine = com.example.assistantx.engine.CommandEngine(this)
 
         setContent {
+            androidx.activity.compose.BackHandler {
+                moveTaskToBack(true)
+            }
             AssistantXTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -64,6 +67,13 @@ class MainActivity : ComponentActivity() {
         // Ensure transparent backdrop is reapplied whenever the app is reopened
         window.setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
         window.decorView.setBackgroundColor(AndroidColor.TRANSPARENT)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Set a solid dark background for the Recents snapshot to avoid transparency glitches
+        window.setBackgroundDrawable(ColorDrawable(AndroidColor.parseColor("#0B1017")))
+        window.decorView.setBackgroundColor(AndroidColor.parseColor("#0B1017"))
     }
 
     override fun onDestroy() {
