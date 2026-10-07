@@ -61,6 +61,8 @@ import com.example.assistantx.ui.theme.TextPrimary
 import com.example.assistantx.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 
+import com.example.assistantx.core.state.AssistantState
+import com.example.assistantx.core.state.AssistantStateManager
 import com.example.assistantx.engine.CommandEngine
 
 /**
@@ -72,6 +74,7 @@ import com.example.assistantx.engine.CommandEngine
 fun HomeScreen(
     modifier: Modifier = Modifier,
     commandEngine: CommandEngine? = null,
+    stateManager: AssistantStateManager? = null,
     onPowerClicked: () -> Unit = {}
 ) {
     var showHistorySheet by remember { mutableStateOf(false) }
@@ -80,6 +83,9 @@ fun HomeScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    // State Observation
+    val assistantState by (stateManager?.currentState ?: kotlinx.coroutines.flow.MutableStateFlow(AssistantState.IDLE)).androidx.compose.runtime.collectAsState()
 
     // Conversational State
     val messages = remember { androidx.compose.runtime.mutableStateListOf<com.example.assistantx.ui.models.Message>() }
@@ -122,6 +128,7 @@ fun HomeScreen(
         // Borderless full-screen Assistant Content
         AssistantCard(
             messages = messages,
+            assistantState = assistantState,
             modifier = Modifier.fillMaxSize(),
             showContainer = false,
             onHistoryClick = { showHistorySheet = true },

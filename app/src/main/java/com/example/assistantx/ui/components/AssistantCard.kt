@@ -42,6 +42,7 @@ import com.example.assistantx.ui.theme.StatusGreen
 import com.example.assistantx.ui.theme.TextPrimary
 import com.example.assistantx.ui.theme.TextSecondary
 import com.example.assistantx.ui.theme.TextTertiary
+import com.example.assistantx.core.state.AssistantState
 
 /**
  * Main floating frosted glassmorphic Assistant X card.
@@ -49,6 +50,7 @@ import com.example.assistantx.ui.theme.TextTertiary
 @Composable
 fun AssistantCard(
     messages: List<com.example.assistantx.ui.models.Message> = emptyList(),
+    assistantState: AssistantState = AssistantState.IDLE,
     modifier: Modifier = Modifier,
     showContainer: Boolean = true,
     onHistoryClick: (() -> Unit)? = null,
@@ -154,7 +156,8 @@ fun AssistantCard(
                     Spacer(modifier = Modifier.height(26.dp))
 
                     AssistantOrb(
-                        size = 175.dp
+                        size = 175.dp,
+                        state = assistantState
                     )
 
                     Spacer(modifier = Modifier.height(26.dp))

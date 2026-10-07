@@ -15,8 +15,11 @@ import androidx.core.view.WindowCompat
 import com.example.assistantx.ui.screens.HomeScreen
 import com.example.assistantx.ui.theme.AssistantXTheme
 
+import com.example.assistantx.core.state.AssistantStateManager
+
 class MainActivity : ComponentActivity() {
     
+    private lateinit var stateManager: AssistantStateManager
     private lateinit var commandEngine: com.example.assistantx.engine.CommandEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +45,8 @@ class MainActivity : ComponentActivity() {
 
 
 
-        commandEngine = com.example.assistantx.engine.CommandEngine(this)
+        stateManager = AssistantStateManager()
+        commandEngine = com.example.assistantx.engine.CommandEngine(this, stateManager)
 
         setContent {
             androidx.activity.compose.BackHandler {
@@ -55,6 +59,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     HomeScreen(
                         commandEngine = commandEngine,
+                        stateManager = stateManager,
                         onPowerClicked = { finish() }
                     )
                 }
