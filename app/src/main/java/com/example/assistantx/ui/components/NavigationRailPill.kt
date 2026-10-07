@@ -7,6 +7,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,7 +48,7 @@ fun NavigationRailPill(
     onItemSelected: (NavItem) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val pillShape = RoundedCornerShape(32.dp)
+    val pillShape = RoundedCornerShape(26.dp)
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -69,12 +73,12 @@ fun NavigationRailPill(
             .clip(pillShape)
             .background(backgroundBrush, pillShape)
             .border(1.dp, borderBrush, pillShape)
-            .padding(vertical = 14.dp),
+            .padding(vertical = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(22.dp)
+            verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             NavItem.values().forEach { item ->
                 val isSelected = item == selectedItem
@@ -97,32 +101,54 @@ private fun NavRailIcon(
     val interactionSource = remember { MutableInteractionSource() }
 
     if (isSelected) {
-        val activeShape = RoundedCornerShape(13.dp)
+        val activeShape = RoundedCornerShape(14.dp)
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(activeShape)
-                .background(Color(0x55334155), activeShape)
-                .border(1.dp, Color(0x66FFFFFF), activeShape)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick
-                ),
+                .width(52.dp) // Fill width of rail to allow left indicator
+                .height(44.dp),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
+            // Active background with border
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(activeShape)
+                    .background(Color(0x55334155), activeShape)
+                    .border(1.dp, Color(0x66FFFFFF), activeShape)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // Left edge glowing white bar
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(3.dp)
+                    .height(22.dp)
+                    .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(Color.White, Color(0x99FFFFFF))
+                        )
+                    )
             )
         }
     } else {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
+                .width(52.dp)
+                .height(44.dp)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -133,8 +159,8 @@ private fun NavRailIcon(
             Icon(
                 imageVector = item.icon,
                 contentDescription = item.label,
-                tint = Color(0xFF8E9EB2),
-                modifier = Modifier.size(21.dp)
+                tint = Color(0xFFE2E8F0),
+                modifier = Modifier.size(24.dp)
             )
         }
     }

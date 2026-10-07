@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistantx.ui.theme.TextPlaceholder
@@ -41,6 +43,7 @@ import com.example.assistantx.ui.theme.TextPrimary
 fun AssistantInputBar(
     text: String = "",
     onTextChanged: (String) -> Unit = {},
+    onSubmitClicked: (String) -> Unit = {},
     onAddClicked: () -> Unit = {},
     onMicClicked: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -111,7 +114,9 @@ fun AssistantInputBar(
                     Text(
                         text = "Message Assistant X...",
                         color = TextPlaceholder,
-                        fontSize = 14.5.sp
+                        fontSize = 14.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -124,31 +129,53 @@ fun AssistantInputBar(
                         fontSize = 14.5.sp
                     ),
                     cursorBrush = SolidColor(Color(0xFF60A5FA)),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Go
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onGo = { onSubmitClicked(text) },
+                        onDone = { onSubmitClicked(text) }
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Right Mic Button
+            // Right Action Button (Send if text exists, else Mic)
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0x44263345), CircleShape)
+                    .background(if (text.isNotBlank()) Color(0xFF38BDF8) else Color(0x44263345), CircleShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = onMicClicked
+                        onClick = {
+                            if (text.isNotBlank()) {
+                                onSubmitClicked(text)
+                            } else {
+                                onMicClicked()
+                            }
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = "Voice Input",
-                    tint = Color(0xFFE2E8F0),
-                    modifier = Modifier.size(20.dp)
-                )
+                if (text.isNotBlank()) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Send Command",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Input",
+                        tint = Color(0xFFE2E8F0),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

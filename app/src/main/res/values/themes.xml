@@ -3,25 +3,21 @@
     <style name="Theme.AssistantX" parent="android:Theme.Material.Light.NoActionBar">
         <!-- 100% True Translucent & Transparent Window Configuration -->
         <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorBackground">@android:color/transparent</item>
+        <item name="android:windowBackground">#070A0F</item>
+        <item name="android:colorBackground">#070A0F</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
-        <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsFloating">false</item>
         <item name="android:backgroundDimEnabled">false</item>
-        
-        <!-- Keep user's screen & wallpaper live behind the overlay -->
-        <item name="android:windowShowWallpaper">true</item>
-        
-        <!-- Prevent Android Launcher from drawing solid preview windows or splash screens on reopen -->
+
+        <!-- Prevent Android 12+ Splash Screen from forcing a solid color -->
         <item name="android:windowDisablePreview">true</item>
-        <item name="android:windowSplashScreenBackground">@android:color/transparent</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">#070A0F</item>
+
+        <!-- Prevent Android transition animations from drawing a black frame -->
+        <item name="android:windowAnimationStyle">@null</item>
         
         <!-- System bar transparency without black bars -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>

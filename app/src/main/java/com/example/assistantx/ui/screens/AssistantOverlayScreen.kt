@@ -5,8 +5,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -44,6 +47,7 @@ fun AssistantOverlayScreen(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
             .clickable(
                 interactionSource = backdropInteraction,
                 indication = null,
@@ -56,6 +60,7 @@ fun AssistantOverlayScreen(
             modifier = Modifier
                 .widthIn(max = 430.dp)
                 .fillMaxWidth()
+                .height(androidx.compose.foundation.layout.IntrinsicSize.Min) // Match heights
                 .padding(horizontal = 14.dp)
                 // Consume clicks on the card so tapping inside doesn't dismiss
                 .clickable(
@@ -75,7 +80,8 @@ fun AssistantOverlayScreen(
                     } else {
                         selectedNav = item
                     }
-                }
+                },
+                modifier = Modifier.fillMaxHeight() // Fill the IntrinsicSize.Min height
             )
 
             // Main Floating Glassmorphic Assistant Card

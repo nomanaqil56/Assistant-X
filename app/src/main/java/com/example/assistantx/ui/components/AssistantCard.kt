@@ -7,13 +7,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistantx.ui.theme.StatusGreen
@@ -39,139 +48,181 @@ import com.example.assistantx.ui.theme.TextTertiary
  */
 @Composable
 fun AssistantCard(
-    modifier: Modifier = Modifier
+    messages: List<com.example.assistantx.ui.models.Message> = emptyList(),
+    modifier: Modifier = Modifier,
+    showContainer: Boolean = true,
+    onHistoryClick: (() -> Unit)? = null,
+    onMenuClick: (() -> Unit)? = null,
+    onCommandSubmit: (String) -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
 
-    GlassmorphicContainer(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(26.dp),
-        hasEdgeGlow = true
-    ) {
+    val content = @Composable {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 22.dp),
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header: Title & Local AI Status Badge
+            // Top Bar: 2 Unequal Lines Menu Icon (Left) & Borderless History Icon (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                // Left: 2 Unequal Horizontal Lines Menu Button
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onMenuClick?.invoke() }
+                        ),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(20.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(TextPrimary)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(13.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(TextPrimary)
+                        )
+                    }
+                }
+
+                // Right: Borderless History Icon
+                if (onHistoryClick != null) {
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = onHistoryClick
+                            ),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Schedule,
+                            contentDescription = "History",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.size(36.dp))
+                }
+            }
+
+            // Central Section: Conversation or Empty State
+            if (messages.isEmpty()) {
+                Spacer(modifier = Modifier.weight(1f))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = "Assistant X",
                         color = TextPrimary,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.2.sp
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.3.sp,
+                        textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
                         text = "Your Private AI Assistant",
                         color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(26.dp))
+
+                    AssistantOrb(
+                        size = 175.dp
+                    )
+
+                    Spacer(modifier = Modifier.height(26.dp))
+
+                    Text(
+                        text = "How can I help you today?",
+                        color = TextPrimary,
+                        fontSize = 19.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Think. Assist. On Your Device.",
+                        color = TextSecondary,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
                     )
                 }
-
-                // Status Badge "● Local AI"
-                LocalAiBadge()
+                Spacer(modifier = Modifier.weight(1f))
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    reverseLayout = false,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(messages) { message ->
+                        MessageBubble(message = message)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Central Glowing Assistant Orb
-            AssistantOrb(
-                size = 175.dp
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Central Prompt Typography
-            Text(
-                text = "How can I help you today?",
-                color = TextPrimary,
-                fontSize = 19.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Think. Assist. On Your Device.",
-                color = TextSecondary,
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(34.dp))
-
-            // Input Bar
+            // Bottom Section: Input Bar
             AssistantInputBar(
                 text = inputText,
                 onTextChanged = { inputText = it },
+                onSubmitClicked = { 
+                    if (it.isNotBlank()) {
+                        onCommandSubmit(it)
+                        inputText = ""
+                    }
+                },
                 onAddClicked = { /* Optional attachment hook */ },
                 onMicClicked = { /* Voice input hook */ }
             )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Footer tagline
-            Text(
-                text = "Fast  •  Private  •  On Device",
-                color = TextTertiary,
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                letterSpacing = 0.5.sp
-            )
         }
     }
-}
 
-@Composable
-fun LocalAiBadge() {
-    val badgeShape = RoundedCornerShape(20.dp)
-    val badgeBg = Brush.horizontalGradient(
-        colors = listOf(
-            Color(0xCC121C29),
-            Color(0x99172333)
-        )
-    )
-
-    Box(
-        modifier = Modifier
-            .clip(badgeShape)
-            .background(badgeBg, badgeShape)
-            .border(1.dp, Color(0x33475569), badgeShape)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+    if (showContainer) {
+        GlassmorphicContainer(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(26.dp),
+            hasEdgeGlow = true
         ) {
-            // Glowing Green Dot
-            Box(
-                modifier = Modifier
-                    .size(6.5.dp)
-                    .clip(CircleShape)
-                    .background(StatusGreen)
-            )
-
-            Text(
-                text = "Local AI",
-                color = Color(0xFFE2E8F0),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-            )
+            content()
+        }
+    } else {
+        Box(
+            modifier = modifier.fillMaxSize()
+        ) {
+            content()
         }
     }
 }
