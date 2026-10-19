@@ -35,9 +35,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -69,15 +70,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.assistantx.core.conversation.Conversation
 import com.example.assistantx.core.state.AssistantState
 import com.example.assistantx.ui.theme.DarkBackground
 import com.example.assistantx.ui.theme.StatusGreen
 import com.example.assistantx.ui.theme.TextPrimary
 import com.example.assistantx.ui.theme.TextSecondary
 import com.example.assistantx.ui.theme.TextTertiary
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // Cinematic slide duration & easing
 private const val SLIDE_IN_DURATION = 280
@@ -94,7 +100,11 @@ fun AssistantSideMenu(
     isOpen: Boolean,
     onDismiss: () -> Unit,
     onNewChat: () -> Unit,
-    onOpenHistory: () -> Unit,
+    conversations: List<Conversation> = emptyList(),
+    activeConversationId: String? = null,
+    onSelectConversation: (String) -> Unit = {},
+    onDeleteConversation: (String) -> Unit = {},
+    onOpenHistory: (() -> Unit)? = null,
     onOpenSettings: () -> Unit = {},
     assistantState: AssistantState = AssistantState.IDLE,
     isTtsReady: Boolean = false,
@@ -268,34 +278,91 @@ fun AssistantSideMenu(
                     modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
                 )
 
-                // 1. New Conversation
+                // 1. New Conversation Action
                 MinimalNavRow(
-                    icon = Icons.Outlined.ChatBubbleOutline,
+                    icon = Icons.Outlined.Add,
                     label = "New Conversation",
                     enabled = isOpen,
                     onClick = {
-                        if (hasActiveConversation) {
-                            showNewChatConfirmDialog = true
-                        } else {
-                            onNewChat()
-                            onDismiss()
+                        onNewChat()
+                        onDismiss()
+                    }
+                )
+
+                // 2. Chats (All Saved Conversations)
+                Spacer(modifier = Modifier.height(18.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "CHATS",
+                        color = TextTertiary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    if (conversations.isNotEmpty()) {
+                        Text(
+                            text = "${conversations.size}",
+                            color = TextTertiary,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+
+                if (conversations.isEmpty()) {
+                    Text(
+                        text = "No saved conversations",
+                        color = TextTertiary.copy(alpha = 0.5f),
+                        fontSize = 11.5.sp,
+                        modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp)
+                    )
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        conversations.forEach { conversation ->
+                            ConversationRow(
+                                title = conversation.title,
+                                updatedAt = conversation.updatedAt,
+                                messageCount = conversation.messages.size,
+                                isActive = conversation.id == activeConversationId,
+                                onClick = {
+                                    onSelectConversation(conversation.id)
+                                    onDismiss()
+                                },
+                                onDelete = {
+                                    onDeleteConversation(conversation.id)
+                                }
+                            )
                         }
                     }
-                )
+                }
 
-                // 2. Command History
-                MinimalNavRow(
-                    icon = Icons.Outlined.History,
-                    label = "Command History",
-                    badge = if (historyCount > 0) "$historyCount" else null,
-                    enabled = isOpen,
-                    onClick = {
-                        onDismiss()
-                        onOpenHistory()
-                    }
-                )
+                // 3. Optional Command History (When requested)
+                if (onOpenHistory != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    MinimalNavRow(
+                        icon = Icons.Outlined.History,
+                        label = "Command History",
+                        badge = if (historyCount > 0) "$historyCount" else null,
+                        enabled = isOpen,
+                        onClick = {
+                            onDismiss()
+                            onOpenHistory()
+                        }
+                    )
+                }
 
-                // 3. Settings Destination
+                // 4. Settings Destination
+                Spacer(modifier = Modifier.height(14.dp))
                 MinimalNavRow(
                     icon = Icons.Outlined.Settings,
                     label = "Settings",
@@ -690,3 +757,126 @@ private fun openAppSettings(context: Context) {
         context.startActivity(fallback)
     }
 }
+
+/**
+ * Format timestamp into relative display string.
+ */
+private fun formatRelativeTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = (now - timestamp).coerceAtLeast(0)
+    val seconds = diff / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
+
+    return when {
+        seconds < 45 -> "Just now"
+        minutes < 60 -> "${minutes}m ago"
+        hours < 24 -> "${hours}h ago"
+        days < 7 -> "${days}d ago"
+        else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(timestamp))
+    }
+}
+
+/**
+ * Clean, borderless conversation session item for the side menu.
+ */
+@Composable
+private fun ConversationRow(
+    title: String,
+    updatedAt: Long,
+    messageCount: Int,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val backgroundColor = when {
+        isPressed -> Color(0xFF38BDF8).copy(alpha = 0.20f)
+        isActive -> Color(0xFF38BDF8).copy(alpha = 0.12f)
+        else -> Color(0x06FFFFFF)
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(backgroundColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.ChatBubbleOutline,
+                contentDescription = null,
+                tint = if (isActive) Color(0xFF38BDF8) else TextTertiary,
+                modifier = Modifier.size(14.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    color = if (isActive) TextPrimary else TextSecondary,
+                    fontSize = 12.5.sp,
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(1.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(
+                        text = formatRelativeTime(updatedAt),
+                        color = TextTertiary,
+                        fontSize = 9.5.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    if (messageCount > 0) {
+                        Text(
+                            text = "•",
+                            color = TextTertiary.copy(alpha = 0.4f),
+                            fontSize = 9.5.sp
+                        )
+                        Text(
+                            text = "$messageCount msgs",
+                            color = TextTertiary,
+                            fontSize = 9.5.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+
+        // Delete button
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(22.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Delete chat",
+                tint = TextTertiary.copy(alpha = 0.45f),
+                modifier = Modifier.size(12.dp)
+            )
+        }
+    }
+}
+

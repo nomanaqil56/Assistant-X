@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
@@ -32,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +56,7 @@ fun AssistantCard(
     assistantState: AssistantState = AssistantState.IDLE,
     modifier: Modifier = Modifier,
     showContainer: Boolean = false,
+    historyCount: Int = 0,
     onHistoryClick: (() -> Unit)? = null,
     onMenuClick: (() -> Unit)? = null,
     onCommandSubmit: (String) -> Unit = {}
@@ -117,7 +120,7 @@ fun AssistantCard(
                     }
                 }
 
-                // Right: Borderless History Icon
+                // Right: Borderless History Icon (Current Chat Only)
                 if (onHistoryClick != null) {
                     Box(
                         modifier = Modifier
@@ -127,14 +130,24 @@ fun AssistantCard(
                                 indication = null,
                                 onClick = onHistoryClick
                             ),
-                        contentAlignment = Alignment.CenterEnd
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.History,
-                            contentDescription = "Command History",
+                            contentDescription = "Current Chat Command History",
                             tint = TextPrimary,
                             modifier = Modifier.size(22.dp)
                         )
+                        if (historyCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 4.dp, end = 2.dp)
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF38BDF8))
+                            )
+                        }
                     }
                 } else {
                     Spacer(modifier = Modifier.size(36.dp))

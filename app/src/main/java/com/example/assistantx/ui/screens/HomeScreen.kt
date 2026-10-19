@@ -57,6 +57,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.assistantx.core.conversation.Conversation
+import com.example.assistantx.core.conversation.ConversationRepository
 import com.example.assistantx.core.history.CommandHistoryEntry
 import com.example.assistantx.core.history.CommandHistoryRepository
 import com.example.assistantx.core.state.AssistantState
@@ -84,8 +86,7 @@ import java.util.UUID
 /**
  * Assistant X Main Home Screen.
  * Unifies the entire application around the approved minimal, borderless, cinematic theme.
- * Integrates text-first conversational UI, side menu, dedicated Settings screen,
- * and redesigned persistent Command History bottom sheet.
+ * Implements multi-session conversations (Side Menu) and current-chat-only Command History (Chat Screen).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,8 +96,16 @@ fun HomeScreen(
     stateManager: AssistantStateManager? = null
 ) {
     val context = LocalContext.current
+    val conversationRepository = remember { ConversationRepository(context) }
     val historyRepository = remember { CommandHistoryRepository(context) }
-    var historyEntries by remember { mutableStateOf(historyRepository.getHistory()) }
+
+    // Multi-Session Conversations State (Side Menu)
+    val conversations = remember { mutableStateListOf<Conversation>() }
+    var activeConversationId by remember { mutableStateOf<String?>(null) }
+
+    // Current Chat State (Messages & Session-Specific Command History)
+    val messages = remember { mutableStateListOf<Message>() }
+    val currentChatHistory = remember { mutableStateListOf<CommandHistoryEntry>() }
 
     var showHistorySheet by remember { mutableStateOf(false) }
     var showMenuDrawer by remember { mutableStateOf(false) }
@@ -111,14 +120,61 @@ fun HomeScreen(
     val currentFlow = stateManager?.currentState ?: fallbackFlow
     val assistantState by currentFlow.collectAsState()
 
-    // Conversational State
-    val messages = remember { mutableStateListOf<Message>() }
-
     // Automatically hide keyboard and clear focus whenever menu, history, or settings opens
     LaunchedEffect(showMenuDrawer, showHistorySheet, showSettingsScreen) {
         if (showMenuDrawer || showHistorySheet || showSettingsScreen) {
             keyboardController?.hide()
             focusManager.clearFocus()
+        }
+    }
+
+    // Load saved conversations on start
+    LaunchedEffect(Unit) {
+        val loaded = conversationRepository.getAllConversations()
+        conversations.clear()
+        conversations.addAll(loaded)
+
+        val activeId = conversationRepository.getActiveConversationId()
+        val target = loaded.firstOrNull { it.id == activeId } ?: loaded.firstOrNull()
+        if (target != null) {
+            activeConversationId = target.id
+            conversationRepository.setActiveConversationId(target.id)
+            messages.clear()
+            messages.addAll(target.messages)
+            currentChatHistory.clear()
+            currentChatHistory.addAll(target.commandHistory)
+        }
+    }
+
+    val selectConversation: (String) -> Unit = { id ->
+        val conv = conversationRepository.getConversation(id)
+        if (conv != null) {
+            activeConversationId = conv.id
+            conversationRepository.setActiveConversationId(conv.id)
+            messages.clear()
+            messages.addAll(conv.messages)
+            currentChatHistory.clear()
+            currentChatHistory.addAll(conv.commandHistory)
+        }
+    }
+
+    val startNewConversation: () -> Unit = {
+        activeConversationId = null
+        conversationRepository.setActiveConversationId(null)
+        messages.clear()
+        currentChatHistory.clear()
+    }
+
+    val deleteConversation: (String) -> Unit = { id ->
+        conversationRepository.deleteConversation(id)
+        conversations.removeAll { it.id == id }
+        if (activeConversationId == id) {
+            val next = conversations.firstOrNull()
+            if (next != null) {
+                selectConversation(next.id)
+            } else {
+                startNewConversation()
+            }
         }
     }
 
@@ -136,55 +192,92 @@ fun HomeScreen(
     ) {
         val executeCommand: (String) -> Unit = { text ->
             if (commandEngine != null && text.isNotBlank()) {
-                // 1. Add User Message
-                messages.add(
-                    Message(
-                        role = MessageRole.USER,
-                        text = text
+                // Ensure active conversation session exists
+                val currentActiveId = activeConversationId
+                val targetConv = if (currentActiveId != null) {
+                    conversationRepository.getConversation(currentActiveId) ?: conversationRepository.createConversation(
+                        title = text.trim().take(36)
                     )
+                } else {
+                    val created = conversationRepository.createConversation(
+                        title = text.trim().take(36)
+                    )
+                    activeConversationId = created.id
+                    conversations.add(0, created)
+                    created
+                }
+                activeConversationId = targetConv.id
+
+                // 1. Add User Message
+                val userMsg = Message(
+                    role = MessageRole.USER,
+                    text = text
                 )
+                messages.add(userMsg)
 
                 // 2. Add Assistant Pending Message
                 val pendingId = UUID.randomUUID().toString()
-                messages.add(
-                    Message(
-                        id = pendingId,
-                        role = MessageRole.ASSISTANT,
-                        text = "Processing...",
-                        status = MessageStatus.PENDING
-                    )
+                val pendingMsg = Message(
+                    id = pendingId,
+                    role = MessageRole.ASSISTANT,
+                    text = "Processing...",
+                    status = MessageStatus.PENDING
                 )
+                messages.add(pendingMsg)
 
                 // 3. Execute Command Async
                 coroutineScope.launch {
                     val result = commandEngine.processCommand(text)
+                    val isSuccess = result is CommandResult.Success
 
-                    // 4. Record in persistent local command history
+                    // 4. Record in persistent global command history for legacy stats
                     historyRepository.addEntry(
                         command = text,
                         resultMessage = result.message,
-                        isSuccess = result is CommandResult.Success
+                        isSuccess = isSuccess
                     )
-                    historyEntries = historyRepository.getHistory()
 
-                    // 5. Update Pending Message with Result
+                    // 5. Record command in the CURRENT CHAT'S HISTORY
+                    val newChatEntry = CommandHistoryEntry(
+                        id = UUID.randomUUID().toString(),
+                        command = text,
+                        resultMessage = result.message,
+                        isSuccess = isSuccess,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    currentChatHistory.add(0, newChatEntry)
+
+                    // 6. Update Pending Message with Result
                     val index = messages.indexOfFirst { it.id == pendingId }
                     if (index != -1) {
-                        when (result) {
-                            is CommandResult.Success -> {
-                                messages[index] = messages[index].copy(
-                                    text = result.message,
-                                    status = MessageStatus.SUCCESS
-                                )
-                            }
-                            is CommandResult.Error -> {
-                                messages[index] = messages[index].copy(
-                                    text = result.message,
-                                    status = MessageStatus.ERROR
-                                )
-                            }
-                        }
+                        messages[index] = messages[index].copy(
+                            text = result.message,
+                            status = if (isSuccess) MessageStatus.SUCCESS else MessageStatus.ERROR
+                        )
                     }
+
+                    // 7. Persist updated Conversation (user message, assistant reply, current chat's command history)
+                    val latestTitle = if (targetConv.messages.isEmpty() || targetConv.title == "New Conversation") {
+                        text.trim().take(36).ifBlank { "Conversation" }
+                    } else {
+                        targetConv.title
+                    }
+
+                    val updatedConv = targetConv.copy(
+                        title = latestTitle,
+                        messages = messages.toList(),
+                        commandHistory = currentChatHistory.toList(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    conversationRepository.saveConversation(updatedConv)
+
+                    val idx = conversations.indexOfFirst { it.id == updatedConv.id }
+                    if (idx != -1) {
+                        conversations[idx] = updatedConv
+                    } else {
+                        conversations.add(0, updatedConv)
+                    }
+                    conversations.sortByDescending { it.updatedAt }
                 }
             }
         }
@@ -195,27 +288,36 @@ fun HomeScreen(
             assistantState = assistantState,
             modifier = Modifier.fillMaxSize(),
             showContainer = false,
+            historyCount = currentChatHistory.size,
             onHistoryClick = { showHistorySheet = true },
             onMenuClick = { showMenuDrawer = true },
             onCommandSubmit = executeCommand
         )
 
-        // Minimalist Borderless Side Menu Control Center
+        // Minimalist Borderless Side Menu Control Center (Chats: All Conversations)
         AssistantSideMenu(
             isOpen = showMenuDrawer,
             onDismiss = { showMenuDrawer = false },
             onNewChat = {
-                messages.clear()
+                startNewConversation()
+                showMenuDrawer = false
             },
-            onOpenHistory = {
-                showHistorySheet = true
+            conversations = conversations,
+            activeConversationId = activeConversationId,
+            onSelectConversation = { convId ->
+                selectConversation(convId)
+                showMenuDrawer = false
             },
+            onDeleteConversation = { convId ->
+                deleteConversation(convId)
+            },
+            onOpenHistory = null, // Command History belongs on the Chat Screen per architecture
             onOpenSettings = {
                 showSettingsScreen = true
             },
             assistantState = assistantState,
             isTtsReady = commandEngine?.isTtsReady ?: false,
-            historyCount = historyEntries.size,
+            historyCount = currentChatHistory.size,
             hasActiveConversation = messages.isNotEmpty()
         )
 
@@ -228,15 +330,21 @@ fun HomeScreen(
             SettingsScreen(
                 onBack = { showSettingsScreen = false },
                 commandEngine = commandEngine,
-                historyCount = historyEntries.size,
+                historyCount = conversations.sumOf { it.commandHistory.size },
                 onClearHistory = {
                     historyRepository.clearHistory()
-                    historyEntries = emptyList()
+                    currentChatHistory.clear()
+                    val all = conversationRepository.getAllConversations().map {
+                        it.copy(commandHistory = emptyList())
+                    }
+                    all.forEach { conversationRepository.saveConversation(it) }
+                    conversations.clear()
+                    conversations.addAll(conversationRepository.getAllConversations())
                 }
             )
         }
 
-        // Redesigned Borderless Command History Bottom Sheet
+        // Redesigned Borderless Command History Bottom Sheet (Current Chat Only)
         if (showHistorySheet) {
             ModalBottomSheet(
                 onDismissRequest = { showHistorySheet = false },
@@ -251,10 +359,24 @@ fun HomeScreen(
                 }
             ) {
                 HistorySheetContent(
-                    entries = historyEntries,
+                    entries = currentChatHistory,
                     onClearHistory = {
-                        historyRepository.clearHistory()
-                        historyEntries = emptyList()
+                        currentChatHistory.clear()
+                        val currentId = activeConversationId
+                        if (currentId != null) {
+                            val conv = conversationRepository.getConversation(currentId)
+                            if (conv != null) {
+                                val updated = conv.copy(
+                                    commandHistory = emptyList(),
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                conversationRepository.saveConversation(updated)
+                                val idx = conversations.indexOfFirst { it.id == currentId }
+                                if (idx != -1) {
+                                    conversations[idx] = updated
+                                }
+                            }
+                        }
                     },
                     onItemClick = { command ->
                         showHistorySheet = false
@@ -297,7 +419,7 @@ private fun HistorySheetContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Command History",
+                    text = "Chat Command History",
                     color = TextPrimary,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
@@ -373,7 +495,7 @@ private fun HistorySheetContent(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Commands you execute on Assistant X are logged locally on this device.",
+                    text = "Commands you execute in this chat session are logged locally here.",
                     color = TextTertiary,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
