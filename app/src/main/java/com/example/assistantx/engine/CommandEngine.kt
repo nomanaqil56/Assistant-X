@@ -37,6 +37,9 @@ class CommandEngine(
         return result
     }
     
+    val isTtsReady: Boolean
+        get() = ttsManager.isTtsReady
+
     fun shutdown() {
         ttsManager.shutdown()
     }

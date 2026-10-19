@@ -9,6 +9,9 @@ class TextToSpeechManager(context: Context) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private var isReady = false
 
+    val isTtsReady: Boolean
+        get() = isReady
+
     init {
         tts = TextToSpeech(context, this)
     }
