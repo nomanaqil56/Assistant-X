@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -94,13 +95,13 @@ fun AssistantSideMenu(
     onDismiss: () -> Unit,
     onNewChat: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     assistantState: AssistantState = AssistantState.IDLE,
     isTtsReady: Boolean = false,
     historyCount: Int = 0,
     hasActiveConversation: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
 
@@ -113,9 +114,11 @@ fun AssistantSideMenu(
 
     // Pure horizontal slide animation controller (0f = closed, 1f = fully presented)
     val slideProgress = remember { Animatable(if (isOpen) 1f else 0f) }
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(isOpen) {
         if (isOpen) {
+            scrollState.scrollTo(0)
             slideProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = SLIDE_IN_DURATION, easing = SlideEasing)
@@ -135,8 +138,6 @@ fun AssistantSideMenu(
 
     // Modal dialog states
     var showNewChatConfirmDialog by remember { mutableStateOf(false) }
-    var infoDialogTitle by remember { mutableStateOf<String?>(null) }
-    var infoDialogMessage by remember { mutableStateOf<String?>(null) }
     var isStatusExpanded by remember { mutableStateOf(false) }
 
     // Complete resource detachment when closed and idle
@@ -188,10 +189,10 @@ fun AssistantSideMenu(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp, vertical = 20.dp)
             ) {
-                // --- A. REFINED HEADER ---
+                // --- A. REFINED HEADER WITH ACTUAL COMPACT ORB ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -203,21 +204,12 @@ fun AssistantSideMenu(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Minimalist Emblem Core
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(0x1838BDF8)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF38BDF8))
-                            )
-                        }
+                        // Iconic Particle-Based Orb in Compact Mode
+                        AssistantOrb(
+                            size = 32.dp,
+                            state = assistantState,
+                            isCompact = true
+                        )
 
                         Column {
                             Text(
@@ -267,7 +259,7 @@ fun AssistantSideMenu(
 
                 // --- C. PRIMARY NAVIGATION ---
                 Text(
-                    text = "ASSISTANT",
+                    text = "MENU",
                     color = TextTertiary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -303,75 +295,21 @@ fun AssistantSideMenu(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(
-                    color = Color(0x0AFFFFFF),
-                    thickness = 0.5.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // --- D. SYSTEM CONTROLS & PRIVACY ---
-                Text(
-                    text = "DEVICE & PRIVACY",
-                    color = TextTertiary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                )
-
-                // 1. Voice & Speech (Native Android TTS Configuration)
+                // 3. Settings Destination
                 MinimalNavRow(
-                    icon = Icons.Outlined.RecordVoiceOver,
-                    label = "Voice & Speech",
-                    trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    icon = Icons.Outlined.Settings,
+                    label = "Settings",
                     enabled = isOpen,
                     onClick = {
                         onDismiss()
-                        openTtsSettings(context)
-                    }
-                )
-
-                // 2. Device Permissions (Native App Details)
-                MinimalNavRow(
-                    icon = Icons.Outlined.Security,
-                    label = "App Permissions",
-                    trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
-                    enabled = isOpen,
-                    onClick = {
-                        onDismiss()
-                        openAppSettings(context)
-                    }
-                )
-
-                // 3. AI Architecture Info (Verified Local Rule Pipeline)
-                MinimalNavRow(
-                    icon = Icons.Outlined.Memory,
-                    label = "AI Engine",
-                    enabled = isOpen,
-                    onClick = {
-                        infoDialogTitle = "On-Device AI Architecture"
-                        infoDialogMessage = "The current command engine uses an on-device pattern and rule parser. This describes the current command path, not a guarantee that every future feature works offline."
-                    }
-                )
-
-                // 4. Sandbox & Privacy
-                MinimalNavRow(
-                    icon = Icons.Outlined.Shield,
-                    label = "Privacy",
-                    enabled = isOpen,
-                    onClick = {
-                        infoDialogTitle = "Sandboxed Privacy Model"
-                        infoDialogMessage = "Command history is stored locally by Assistant X. The current command engine uses on-device pattern and rule matching; individual features may have separate requirements as they are added."
+                        onOpenSettings()
                     }
                 )
 
                 Spacer(modifier = Modifier.weight(1f, fill = false))
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // --- E. SUBTLE MINIMAL FOOTER ---
+                // --- D. SUBTLE MINIMAL FOOTER ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -433,43 +371,6 @@ fun AssistantSideMenu(
                     onClick = { showNewChatConfirmDialog = false }
                 ) {
                     Text("Cancel", color = TextSecondary)
-                }
-            },
-            containerColor = Color(0xF00D1420),
-            shape = RoundedCornerShape(14.dp)
-        )
-    }
-
-    if (infoDialogTitle != null && infoDialogMessage != null) {
-        AlertDialog(
-            onDismissRequest = {
-                infoDialogTitle = null
-                infoDialogMessage = null
-            },
-            title = {
-                Text(
-                    text = infoDialogTitle!!,
-                    color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            text = {
-                Text(
-                    text = infoDialogMessage!!,
-                    color = TextSecondary,
-                    fontSize = 13.5.sp,
-                    lineHeight = 19.sp
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        infoDialogTitle = null
-                        infoDialogMessage = null
-                    }
-                ) {
-                    Text("Done", color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold)
                 }
             },
             containerColor = Color(0xF00D1420),

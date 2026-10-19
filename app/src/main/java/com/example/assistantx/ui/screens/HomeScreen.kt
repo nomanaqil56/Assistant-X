@@ -1,7 +1,10 @@
 package com.example.assistantx.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -22,10 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,11 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,6 +69,7 @@ import com.example.assistantx.ui.models.Message
 import com.example.assistantx.ui.models.MessageRole
 import com.example.assistantx.ui.models.MessageStatus
 import com.example.assistantx.ui.theme.AssistantXTheme
+import com.example.assistantx.ui.theme.DarkBackground
 import com.example.assistantx.ui.theme.StatusGreen
 import com.example.assistantx.ui.theme.TextPrimary
 import com.example.assistantx.ui.theme.TextSecondary
@@ -82,8 +83,9 @@ import java.util.UUID
 
 /**
  * Assistant X Main Home Screen.
- * Features dark glassmorphic styling, refined AssistantSideMenu control center,
- * and a persistent local command history bottom sheet.
+ * Unifies the entire application around the approved minimal, borderless, cinematic theme.
+ * Integrates text-first conversational UI, side menu, dedicated Settings screen,
+ * and redesigned persistent Command History bottom sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +100,7 @@ fun HomeScreen(
 
     var showHistorySheet by remember { mutableStateOf(false) }
     var showMenuDrawer by remember { mutableStateOf(false) }
+    var showSettingsScreen by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -111,16 +114,9 @@ fun HomeScreen(
     // Conversational State
     val messages = remember { mutableStateListOf<Message>() }
 
-    // Automatically hide keyboard and clear focus whenever menu or history opens
-    LaunchedEffect(showMenuDrawer) {
-        if (showMenuDrawer) {
-            keyboardController?.hide()
-            focusManager.clearFocus()
-        }
-    }
-
-    LaunchedEffect(showHistorySheet) {
-        if (showHistorySheet) {
+    // Automatically hide keyboard and clear focus whenever menu, history, or settings opens
+    LaunchedEffect(showMenuDrawer, showHistorySheet, showSettingsScreen) {
+        if (showMenuDrawer || showHistorySheet || showSettingsScreen) {
             keyboardController?.hide()
             focusManager.clearFocus()
         }
@@ -130,18 +126,10 @@ fun HomeScreen(
         skipPartiallyExpanded = false
     )
 
-    val darkBackground = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF0B1017),
-            Color(0xFF070A0F),
-            Color(0xFF040609)
-        )
-    )
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(darkBackground)
+            .background(DarkBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -201,21 +189,18 @@ fun HomeScreen(
             }
         }
 
-        // Borderless full-screen Assistant Content
+        // Primary Conversational Experience
         AssistantCard(
             messages = messages,
             assistantState = assistantState,
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+            modifier = Modifier.fillMaxSize(),
             showContainer = false,
             onHistoryClick = { showHistorySheet = true },
             onMenuClick = { showMenuDrawer = true },
             onCommandSubmit = executeCommand
         )
 
-        // Refined Assistant X Side Menu Control Center
+        // Minimalist Borderless Side Menu Control Center
         AssistantSideMenu(
             isOpen = showMenuDrawer,
             onDismiss = { showMenuDrawer = false },
@@ -225,23 +210,43 @@ fun HomeScreen(
             onOpenHistory = {
                 showHistorySheet = true
             },
+            onOpenSettings = {
+                showSettingsScreen = true
+            },
             assistantState = assistantState,
             isTtsReady = commandEngine?.isTtsReady ?: false,
             historyCount = historyEntries.size,
             hasActiveConversation = messages.isNotEmpty()
         )
 
-        // Slide-up History Bottom Sheet
+        // Dedicated In-App Settings Destination
+        AnimatedVisibility(
+            visible = showSettingsScreen,
+            enter = fadeIn(tween(220)),
+            exit = fadeOut(tween(180))
+        ) {
+            SettingsScreen(
+                onBack = { showSettingsScreen = false },
+                commandEngine = commandEngine,
+                historyCount = historyEntries.size,
+                onClearHistory = {
+                    historyRepository.clearHistory()
+                    historyEntries = emptyList()
+                }
+            )
+        }
+
+        // Redesigned Borderless Command History Bottom Sheet
         if (showHistorySheet) {
             ModalBottomSheet(
                 onDismissRequest = { showHistorySheet = false },
                 sheetState = sheetState,
-                containerColor = Color(0xF00D1420),
-                contentColor = Color.White,
-                scrimColor = Color.Black.copy(alpha = 0.5f),
+                containerColor = DarkBackground,
+                contentColor = TextPrimary,
+                scrimColor = Color.Black.copy(alpha = 0.65f),
                 dragHandle = {
                     BottomSheetDefaults.DragHandle(
-                        color = Color(0x66FFFFFF)
+                        color = Color(0x33FFFFFF)
                     )
                 }
             ) {
@@ -262,8 +267,8 @@ fun HomeScreen(
 }
 
 /**
- * Real Command History Sheet Content.
- * Displays persistent command executions with timestamps and provides safe clearing with confirmation.
+ * Refined Command History Sheet Content.
+ * Borderless, minimal, dark aesthetic matching the side menu.
  */
 @Composable
 private fun HistorySheetContent(
@@ -279,7 +284,7 @@ private fun HistorySheetContent(
             .padding(horizontal = 20.dp)
             .padding(bottom = 32.dp)
     ) {
-        // Header
+        // --- HEADER ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -294,22 +299,23 @@ private fun HistorySheetContent(
                 Text(
                     text = "Command History",
                     color = TextPrimary,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 if (entries.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0x3338BDF8))
+                            .background(Color(0x1838BDF8))
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "${entries.size}",
                             color = Color(0xFF38BDF8),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -319,19 +325,20 @@ private fun HistorySheetContent(
                 Text(
                     text = "Clear All",
                     color = Color(0xFFEF4444),
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable {
-                        showClearConfirmation = true
-                    }
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showClearConfirmation = true }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (entries.isEmpty()) {
-            // Honest Empty State
+            // Minimal Empty State
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -341,16 +348,16 @@ private fun HistorySheetContent(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(46.dp)
                         .clip(CircleShape)
-                        .background(Color(0x1F38BDF8)),
+                        .background(Color(0x0EFFFFFF)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.History,
                         contentDescription = null,
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(26.dp)
+                        tint = TextTertiary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -359,23 +366,23 @@ private fun HistorySheetContent(
                 Text(
                     text = "No Recorded Commands",
                     color = TextPrimary,
-                    fontSize = 15.sp,
+                    fontSize = 14.5.sp,
                     fontWeight = FontWeight.SemiBold
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Commands you execute on Assistant X will be saved locally here.",
-                    color = TextSecondary,
-                    fontSize = 12.5.sp,
+                    text = "Commands you execute on Assistant X are logged locally on this device.",
+                    color = TextTertiary,
+                    fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(entries, key = { it.id }) { entry ->
@@ -396,16 +403,16 @@ private fun HistorySheetContent(
                 Text(
                     text = "Clear Command History?",
                     color = TextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
                 Text(
                     text = "Are you sure you want to delete all recorded command logs? This action cannot be undone.",
                     color = TextSecondary,
-                    fontSize = 13.5.sp,
-                    lineHeight = 19.sp
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
             },
             confirmButton = {
@@ -415,7 +422,11 @@ private fun HistorySheetContent(
                         onClearHistory()
                     }
                 ) {
-                    Text("Delete All", color = Color(0xFFEF4444), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = "Delete All",
+                        color = Color(0xFFEF4444),
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             },
             dismissButton = {
@@ -425,43 +436,45 @@ private fun HistorySheetContent(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = Color(0xF50F1622),
-            shape = RoundedCornerShape(18.dp)
+            containerColor = Color(0xFF10151E),
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
 
+/**
+ * Clean, borderless history row item.
+ */
 @Composable
 private fun HistoryRowItem(
     entry: CommandHistoryEntry,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val itemShape = RoundedCornerShape(14.dp)
+    val itemShape = RoundedCornerShape(12.dp)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(itemShape)
-            .background(Color(0x2E1E293B), itemShape)
-            .border(1.dp, Color(0x18FFFFFF), itemShape)
+            .background(Color(0x0CFFFFFF), itemShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp, vertical = 11.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Success / Failure Status Icon
-            Icon(
-                imageVector = if (entry.isSuccess) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
-                contentDescription = if (entry.isSuccess) "Success" else "Error",
-                tint = if (entry.isSuccess) StatusGreen else Color(0xFFEF4444),
-                modifier = Modifier.size(18.dp)
+            // Minimalist Status Dot
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(if (entry.isSuccess) StatusGreen else Color(0xFFEF4444))
             )
 
             Column(
@@ -470,7 +483,7 @@ private fun HistoryRowItem(
                 Text(
                     text = entry.command,
                     color = TextPrimary,
-                    fontSize = 14.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -491,8 +504,8 @@ private fun HistoryRowItem(
             Text(
                 text = formatTimestamp(entry.timestamp),
                 color = TextTertiary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Normal
+                fontSize = 10.5.sp,
+                fontFamily = FontFamily.Monospace
             )
         }
     }

@@ -17,8 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -35,74 +33,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistantx.ui.theme.TextPlaceholder
 import com.example.assistantx.ui.theme.TextPrimary
+import com.example.assistantx.ui.theme.TextSecondary
 
 /**
- * Recreates the pill-shaped input bar with '+' button, text field, and mic button.
+ * Minimalist, dark, borderless input bar for Assistant X.
+ * - Restrained dark surface matching side menu theme.
+ * - Clean text field with placeholder.
+ * - Dynamic right action button: Send (Cyan) when text is typed, Microphone (Subtle) when empty.
  */
 @Composable
 fun AssistantInputBar(
     text: String = "",
     onTextChanged: (String) -> Unit = {},
     onSubmitClicked: (String) -> Unit = {},
-    onAddClicked: () -> Unit = {},
+    onAddClicked: (() -> Unit)? = null,
     onMicClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val pillShape = RoundedCornerShape(32.dp)
+    val pillShape = RoundedCornerShape(26.dp)
     val interactionSource = remember { MutableInteractionSource() }
-
-    val barBackground = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xEE111722),
-            Color(0xF00A0F16)
-        )
-    )
-
-    val barBorder = Brush.verticalGradient(
-        colors = listOf(
-            Color(0x44FFFFFF),
-            Color(0x15FFFFFF),
-            Color(0x1038BDF8)
-        )
-    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(52.dp)
             .clip(pillShape)
-            .background(barBackground, pillShape)
-            .border(1.dp, barBorder, pillShape)
-            .padding(horizontal = 8.dp),
+            .background(Color(0xFF10151E), pillShape)
+            .border(0.5.dp, Color(0x14FFFFFF), pillShape)
+            .padding(start = 18.dp, end = 6.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left '+' Add Button
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x44263345), CircleShape)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onAddClicked
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Attach / Add",
-                    tint = Color(0xFFE2E8F0),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
             // Center Input Field
             Box(
                 modifier = Modifier
@@ -128,13 +92,14 @@ fun AssistantInputBar(
                         color = TextPrimary,
                         fontSize = 14.5.sp
                     ),
-                    cursorBrush = SolidColor(Color(0xFF60A5FA)),
+                    cursorBrush = SolidColor(Color(0xFF38BDF8)),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Go
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Send
                     ),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onGo = { onSubmitClicked(text) },
-                        onDone = { onSubmitClicked(text) }
+                        onSend = {
+                            if (text.isNotBlank()) onSubmitClicked(text)
+                        }
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -143,16 +108,20 @@ fun AssistantInputBar(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Right Action Button (Send if text exists, else Mic)
+            val hasText = text.isNotBlank()
+            val buttonBg = if (hasText) Color(0xFF38BDF8) else Color(0x12FFFFFF)
+            val iconTint = if (hasText) Color.Black else TextSecondary
+
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(if (text.isNotBlank()) Color(0xFF38BDF8) else Color(0x44263345), CircleShape)
+                    .background(buttonBg, CircleShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
                         onClick = {
-                            if (text.isNotBlank()) {
+                            if (hasText) {
                                 onSubmitClicked(text)
                             } else {
                                 onMicClicked()
@@ -161,19 +130,19 @@ fun AssistantInputBar(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (text.isNotBlank()) {
+                if (hasText) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send Command",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
+                        tint = iconTint,
+                        modifier = Modifier.size(17.dp)
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Mic,
+                        imageVector = Icons.Outlined.Mic,
                         contentDescription = "Voice Input",
-                        tint = Color(0xFFE2E8F0),
-                        modifier = Modifier.size(20.dp)
+                        tint = iconTint,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             }

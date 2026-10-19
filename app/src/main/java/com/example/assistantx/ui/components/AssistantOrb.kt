@@ -53,88 +53,170 @@ data class Particle(
 fun AssistantOrb(
     modifier: Modifier = Modifier,
     size: Dp = 175.dp,
-    state: AssistantState = AssistantState.IDLE
+    state: AssistantState = AssistantState.IDLE,
+    isCompact: Boolean = size <= 48.dp
 ) {
     // Generate particle data exactly once
-    val particles = remember {
-        val list = ArrayList<Particle>(3500)
-        val random = Random(42)
+    val particles = remember(isCompact) {
+        if (isCompact) {
+            val list = ArrayList<Particle>(140)
+            val random = Random(42)
 
-        // 1. Base Sphere Density (1500)
-        repeat(1500) {
-            val u = random.nextFloat()
-            val v = random.nextFloat()
-            val theta = (u * 2.0 * Math.PI).toFloat()
-            val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
-            list.add(
-                Particle(
-                    initialTheta = theta,
-                    initialPhi = phi,
-                    color = Color(0xFF1E88E5).copy(alpha = 0.5f),
-                    baseSize = 1.5f + random.nextFloat() * 1.5f,
-                    flowSpeed = 1,
-                    radiusMult = 1.0f
+            // 1. Base Sphere Density (60)
+            repeat(60) {
+                val u = random.nextFloat()
+                val v = random.nextFloat()
+                val theta = (u * 2.0 * Math.PI).toFloat()
+                val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF1E88E5).copy(alpha = 0.6f),
+                        baseSize = 1.4f + random.nextFloat() * 1.0f,
+                        flowSpeed = 1,
+                        radiusMult = 1.0f
+                    )
                 )
-            )
-        }
+            }
 
-        // 2. Swirling Ribbon 1: Pink & Bright Blue (1000)
-        repeat(1000) {
-            val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
-            val basePhi = sin(theta * 2.0) * (Math.PI / 3.0)
-            val spread = (random.nextFloat() - 0.5) * 0.4
-            val phi = (basePhi + spread).toFloat()
-            val isPink = random.nextFloat() > 0.4f
-            val color = if (isPink) Color(0xFFFF4081) else Color(0xFF00E5FF)
-            list.add(
-                Particle(
-                    initialTheta = theta,
-                    initialPhi = phi,
-                    color = color.copy(alpha = 0.8f),
-                    baseSize = 2f + random.nextFloat() * 2f,
-                    flowSpeed = 2,
-                    radiusMult = 1.0f + random.nextFloat() * 0.03f
+            // 2. Swirling Ribbon 1: Pink & Bright Blue (40)
+            repeat(40) {
+                val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
+                val basePhi = sin(theta * 2.0) * (Math.PI / 3.0)
+                val spread = (random.nextFloat() - 0.5) * 0.4
+                val phi = (basePhi + spread).toFloat()
+                val isPink = random.nextFloat() > 0.4f
+                val color = if (isPink) Color(0xFFFF4081) else Color(0xFF00E5FF)
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = color.copy(alpha = 0.85f),
+                        baseSize = 1.8f + random.nextFloat() * 1.4f,
+                        flowSpeed = 2,
+                        radiusMult = 1.0f + random.nextFloat() * 0.03f
+                    )
                 )
-            )
-        }
+            }
 
-        // 3. Swirling Ribbon 2: Deep Blue (800)
-        repeat(800) {
-            val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
-            val basePhi = cos(theta * 2.0) * (Math.PI / 3.0)
-            val spread = (random.nextFloat() - 0.5) * 0.4
-            val phi = (basePhi + spread).toFloat()
-            list.add(
-                Particle(
-                    initialTheta = theta,
-                    initialPhi = phi,
-                    color = Color(0xFF2979FF).copy(alpha = 0.8f),
-                    baseSize = 2f + random.nextFloat() * 2f,
-                    flowSpeed = 2,
-                    radiusMult = 1.0f + random.nextFloat() * 0.03f
+            // 3. Swirling Ribbon 2: Deep Blue (30)
+            repeat(30) {
+                val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
+                val basePhi = cos(theta * 2.0) * (Math.PI / 3.0)
+                val spread = (random.nextFloat() - 0.5) * 0.4
+                val phi = (basePhi + spread).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF2979FF).copy(alpha = 0.85f),
+                        baseSize = 1.8f + random.nextFloat() * 1.4f,
+                        flowSpeed = 2,
+                        radiusMult = 1.0f + random.nextFloat() * 0.03f
+                    )
                 )
-            )
-        }
+            }
 
-        // 4. Floating Dust outside the sphere (200)
-        repeat(200) {
-            val u = random.nextFloat()
-            val v = random.nextFloat()
-            val theta = (u * 2.0 * Math.PI).toFloat()
-            val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
-            list.add(
-                Particle(
-                    initialTheta = theta,
-                    initialPhi = phi,
-                    color = Color(0xFF00B0FF).copy(alpha = 0.4f),
-                    baseSize = 1f + random.nextFloat() * 2f,
-                    flowSpeed = 1,
-                    radiusMult = 1.05f + random.nextFloat() * 0.2f
+            // 4. Floating Dust outside the sphere (10)
+            repeat(10) {
+                val u = random.nextFloat()
+                val v = random.nextFloat()
+                val theta = (u * 2.0 * Math.PI).toFloat()
+                val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF00B0FF).copy(alpha = 0.5f),
+                        baseSize = 1.0f + random.nextFloat() * 1.2f,
+                        flowSpeed = 1,
+                        radiusMult = 1.05f + random.nextFloat() * 0.15f
+                    )
                 )
-            )
-        }
+            }
 
-        list
+            list
+        } else {
+            val list = ArrayList<Particle>(3500)
+            val random = Random(42)
+
+            // 1. Base Sphere Density (1500)
+            repeat(1500) {
+                val u = random.nextFloat()
+                val v = random.nextFloat()
+                val theta = (u * 2.0 * Math.PI).toFloat()
+                val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF1E88E5).copy(alpha = 0.5f),
+                        baseSize = 1.5f + random.nextFloat() * 1.5f,
+                        flowSpeed = 1,
+                        radiusMult = 1.0f
+                    )
+                )
+            }
+
+            // 2. Swirling Ribbon 1: Pink & Bright Blue (1000)
+            repeat(1000) {
+                val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
+                val basePhi = sin(theta * 2.0) * (Math.PI / 3.0)
+                val spread = (random.nextFloat() - 0.5) * 0.4
+                val phi = (basePhi + spread).toFloat()
+                val isPink = random.nextFloat() > 0.4f
+                val color = if (isPink) Color(0xFFFF4081) else Color(0xFF00E5FF)
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = color.copy(alpha = 0.8f),
+                        baseSize = 2f + random.nextFloat() * 2f,
+                        flowSpeed = 2,
+                        radiusMult = 1.0f + random.nextFloat() * 0.03f
+                    )
+                )
+            }
+
+            // 3. Swirling Ribbon 2: Deep Blue (800)
+            repeat(800) {
+                val theta = (random.nextFloat() * 2 * Math.PI).toFloat()
+                val basePhi = cos(theta * 2.0) * (Math.PI / 3.0)
+                val spread = (random.nextFloat() - 0.5) * 0.4
+                val phi = (basePhi + spread).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF2979FF).copy(alpha = 0.8f),
+                        baseSize = 2f + random.nextFloat() * 2f,
+                        flowSpeed = 2,
+                        radiusMult = 1.0f + random.nextFloat() * 0.03f
+                    )
+                )
+            }
+
+            // 4. Floating Dust outside the sphere (200)
+            repeat(200) {
+                val u = random.nextFloat()
+                val v = random.nextFloat()
+                val theta = (u * 2.0 * Math.PI).toFloat()
+                val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
+                list.add(
+                    Particle(
+                        initialTheta = theta,
+                        initialPhi = phi,
+                        color = Color(0xFF00B0FF).copy(alpha = 0.4f),
+                        baseSize = 1f + random.nextFloat() * 2f,
+                        flowSpeed = 1,
+                        radiusMult = 1.05f + random.nextFloat() * 0.2f
+                    )
+                )
+            }
+
+            list
+        }
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "OrbMasterTransition")
@@ -241,8 +323,10 @@ fun AssistantOrb(
         }
     }
 
-    Box(
-        modifier = modifier
+    val boxModifier = if (isCompact) {
+        modifier.size(size)
+    } else {
+        modifier
             .size(size)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -278,7 +362,11 @@ fun AssistantOrb(
                         }
                     }
                 }
-            },
+            }
+    }
+
+    Box(
+        modifier = boxModifier,
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(size)) {
