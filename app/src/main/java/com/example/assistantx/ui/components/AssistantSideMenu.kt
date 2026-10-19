@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -178,8 +177,6 @@ fun AssistantSideMenu(
             )
         )
 
-        
-        
 
         val slideOffsetX = -((1f - progress) * panelWidthPx).toInt()
 
@@ -192,7 +189,6 @@ fun AssistantSideMenu(
                 .align(Alignment.CenterStart)
                 .clip(panelShape)
                 .background(panelFillBrush, panelShape)
-                
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -628,12 +624,28 @@ private fun RealSystemStatusArea(
 
                 RealSubsystemRow(
                     label = "Command Engine",
-                    status = "Active (${assistantState.name.lowercase().replaceFirstChar { it.uppercase() }})",
-                    isPositive = true
+                    status = when (assistantState) {
+                        AssistantState.IDLE -> "Ready"
+                        AssistantState.LISTENING -> "Listening"
+                        AssistantState.PROCESSING -> "Processing"
+                        AssistantState.PLANNING -> "Planning"
+                        AssistantState.EXECUTING -> "Working"
+                        AssistantState.OBSERVING -> "Observing"
+                        AssistantState.VERIFYING -> "Verifying"
+                        AssistantState.SPEAKING -> "Speaking"
+                        AssistantState.COMPLETED -> "Completed"
+                        AssistantState.ERROR -> "Error"
+                        AssistantState.WAITING_FOR_CONFIRMATION -> "Awaiting confirmation"
+                        AssistantState.PERMISSION_REQUIRED -> "Permission needed"
+                        AssistantState.UNAVAILABLE -> "Unavailable"
+                    },
+                    isPositive = assistantState != AssistantState.ERROR &&
+                        assistantState != AssistantState.UNAVAILABLE &&
+                        assistantState != AssistantState.PERMISSION_REQUIRED
                 )
                 RealSubsystemRow(
                     label = "Voice Output (TTS)",
-                    status = if (isTtsReady) "Ready" else "Initializing",
+                    status = if (isTtsReady) "Ready" else "Not ready",
                     isPositive = isTtsReady
                 )
                 RealSubsystemRow(
