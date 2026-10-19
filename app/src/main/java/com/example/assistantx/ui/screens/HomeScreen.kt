@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,7 @@ import kotlinx.coroutines.launch
 import com.example.assistantx.core.state.AssistantState
 import com.example.assistantx.core.state.AssistantStateManager
 import com.example.assistantx.engine.CommandEngine
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Assistant X Main Home Screen.
@@ -75,7 +77,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     commandEngine: CommandEngine? = null,
     stateManager: AssistantStateManager? = null,
-    onPowerClicked: () -> Unit = {}
+    @Suppress("UNUSED_PARAMETER") onPowerClicked: () -> Unit = {}
 ) {
     var showHistorySheet by remember { mutableStateOf(false) }
     var showMenuDrawer by remember { mutableStateOf(false) }
@@ -85,7 +87,9 @@ fun HomeScreen(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // State Observation
-    val assistantState by (stateManager?.currentState ?: kotlinx.coroutines.flow.MutableStateFlow(AssistantState.IDLE)).androidx.compose.runtime.collectAsState()
+    val fallbackFlow = remember { MutableStateFlow(AssistantState.IDLE) }
+    val currentFlow = stateManager?.currentState ?: fallbackFlow
+    val assistantState by currentFlow.collectAsState()
 
     // Conversational State
     val messages = remember { androidx.compose.runtime.mutableStateListOf<com.example.assistantx.ui.models.Message>() }

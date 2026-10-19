@@ -26,11 +26,11 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun AssistantXTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = DarkColorScheme
-    val view = LocalViewContext(LocalView.current)
+    LocalViewContext(LocalView.current)
 
     MaterialTheme(
         colorScheme = colorScheme,

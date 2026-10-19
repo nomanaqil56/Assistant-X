@@ -1,5 +1,10 @@
 package com.example.assistantx.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -101,6 +106,18 @@ fun AssistantCard(
                                 .background(TextPrimary)
                         )
                     }
+                }
+
+                // Center: Collapsed Orb when chatting
+                AnimatedVisibility(
+                    visible = messages.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    AssistantOrb(
+                        size = 50.dp,
+                        state = assistantState
+                    )
                 }
 
                 // Right: Borderless History Icon

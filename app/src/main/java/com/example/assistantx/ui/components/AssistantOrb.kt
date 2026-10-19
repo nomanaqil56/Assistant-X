@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -23,6 +24,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.assistantx.core.state.AssistantState
@@ -41,6 +44,11 @@ data class Particle(
     val radiusMult: Float
 )
 
+/**
+ * Next-Generation Luminous Fluid Assistant Orb.
+ * Features organic multi-harmonic 3D particle sphere physics, continuous smooth flow,
+ * state-driven color/scale transitions, and full touch/swipe 3D interaction.
+ */
 @Composable
 fun AssistantOrb(
     modifier: Modifier = Modifier,
@@ -108,6 +116,24 @@ fun AssistantOrb(
             )
         }
 
+        // 4. Floating Dust outside the sphere (200)
+        repeat(200) {
+            val u = random.nextFloat()
+            val v = random.nextFloat()
+            val theta = (u * 2.0 * Math.PI).toFloat()
+            val phi = (acos(2.0 * v - 1.0) - Math.PI / 2.0).toFloat()
+            list.add(
+                Particle(
+                    initialTheta = theta,
+                    initialPhi = phi,
+                    color = Color(0xFF00B0FF).copy(alpha = 0.4f),
+                    baseSize = 1f + random.nextFloat() * 2f,
+                    flowSpeed = 1,
+                    radiusMult = 1.05f + random.nextFloat() * 0.2f
+                )
+            )
+        }
+
         list
     }
 
@@ -146,13 +172,17 @@ fun AssistantOrb(
         label = "BreatheScale"
     )
 
+    // Manual 3D rotations driven by user drag
+    val userRotX = remember { mutableStateOf(0.35f) } // Initial tilt
+    val userRotY = remember { mutableStateOf(0f) }
+
     // State-driven animatable properties
-    val energyLevel = remember { Animatable(0f) }
-    val rotationSpeedMult = remember { Animatable(1f) }
+    val touchEnergy = remember { Animatable(0f) }
+    val stateEnergy = remember { Animatable(0f) }
     val baseScale = remember { Animatable(1f) }
-    
+
     val targetColor by animateColorAsState(
-        targetValue = when(state) {
+        targetValue = when (state) {
             AssistantState.IDLE -> Color(0xFF0055FF)
             AssistantState.LISTENING -> Color(0xFF00E5FF)
             AssistantState.PROCESSING, AssistantState.PLANNING -> Color(0xFF8C9EFF)
@@ -173,122 +203,163 @@ fun AssistantOrb(
         coroutineScope.launch {
             when (state) {
                 AssistantState.IDLE -> {
-                    energyLevel.animateTo(0f, tween(800))
-                    rotationSpeedMult.animateTo(1f, tween(800))
+                    stateEnergy.animateTo(0f, tween(800))
                     baseScale.animateTo(1f, tween(800))
                 }
                 AssistantState.LISTENING -> {
-                    energyLevel.animateTo(0.6f, tween(300))
-                    rotationSpeedMult.animateTo(0.5f, tween(300))
+                    stateEnergy.animateTo(0.5f, tween(300))
                     baseScale.animateTo(1.15f, tween(400, easing = FastOutSlowInEasing))
                 }
                 AssistantState.PROCESSING, AssistantState.PLANNING -> {
-                    energyLevel.animateTo(0.8f, tween(500))
-                    rotationSpeedMult.animateTo(3f, tween(1000))
+                    stateEnergy.animateTo(0.8f, tween(500))
                     baseScale.animateTo(1.05f, tween(400))
                 }
                 AssistantState.EXECUTING -> {
-                    energyLevel.animateTo(0.5f, tween(400))
-                    rotationSpeedMult.animateTo(2f, tween(400))
+                    stateEnergy.animateTo(0.5f, tween(400))
                     baseScale.animateTo(1.1f, tween(400))
                 }
                 AssistantState.SPEAKING -> {
-                    energyLevel.animateTo(0.7f, tween(300))
-                    rotationSpeedMult.animateTo(1.5f, tween(300))
+                    stateEnergy.animateTo(0.6f, tween(300))
                     baseScale.animateTo(1.1f, tween(300))
                 }
                 AssistantState.COMPLETED -> {
-                    energyLevel.animateTo(1f, tween(200))
+                    stateEnergy.animateTo(0.9f, tween(200))
                     baseScale.animateTo(1.2f, tween(200))
-                    // Will return to idle automatically when state changes
                 }
                 AssistantState.ERROR -> {
-                    energyLevel.animateTo(0.9f, tween(100))
-                    rotationSpeedMult.animateTo(0.2f, tween(400))
+                    stateEnergy.animateTo(0.9f, tween(100))
                     baseScale.animateTo(1.1f, tween(100))
                 }
                 AssistantState.WAITING_FOR_CONFIRMATION -> {
-                    energyLevel.animateTo(0.4f, tween(500))
-                    rotationSpeedMult.animateTo(0.8f, tween(500))
+                    stateEnergy.animateTo(0.4f, tween(500))
                     baseScale.animateTo(1.05f, tween(500))
                 }
                 else -> {
-                    energyLevel.animateTo(0f, tween(800))
+                    stateEnergy.animateTo(0f, tween(800))
                 }
             }
         }
     }
 
     Box(
-        modifier = modifier.size(size),
+        modifier = modifier
+            .size(size)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val down = event.changes.firstOrNull { it.pressed } ?: continue
+
+                        // ON TOUCH DOWN: Surge touch energy!
+                        coroutineScope.launch {
+                            touchEnergy.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+                        }
+
+                        var previousPosition = down.position
+
+                        try {
+                            // TRACK MOVEMENT
+                            do {
+                                val dragEvent = awaitPointerEvent()
+                                val pointer = dragEvent.changes.firstOrNull()
+                                if (pointer != null && pointer.pressed) {
+                                    val delta = pointer.position - previousPosition
+                                    // Apply swipe delta to 3D rotation angles
+                                    userRotY.value += delta.x * 0.008f
+                                    userRotX.value -= delta.y * 0.008f
+                                    previousPosition = pointer.position
+                                }
+                            } while (dragEvent.changes.any { it.pressed })
+                        } finally {
+                            // ON RELEASE OR CANCELLATION: Smoothly dissipate touch energy back to zero
+                            coroutineScope.launch {
+                                touchEnergy.animateTo(0f, tween(1200, easing = FastOutSlowInEasing))
+                            }
+                        }
+                    }
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(size)) {
             val center = Offset(this.size.width / 2f, this.size.height / 2f)
-            
+
+            // Calculate total energy (touch + state)
+            val combinedEnergy = (touchEnergy.value + stateEnergy.value).coerceIn(0f, 1f)
+
             // Apply state base scale and breathe scale if idle
             val currentScale = if (state == AssistantState.IDLE) baseScale.value * breatheScale else baseScale.value
             val baseRadius = (this.size.minDimension / 2f) * 0.85f * currentScale
 
-            // 1. Ambient glow background based on state color
-            val glowIntensity = 0.5f + energyLevel.value * 0.8f
+            // Orb expands by up to 15% when charged/touched
+            val currentBaseRadius = baseRadius * (1f + 0.15f * combinedEnergy)
+
+            // 1. Ambient glow background
+            val glowIntensity = 0.5f + combinedEnergy * 0.8f
+            val glowColor = if (state == AssistantState.IDLE && touchEnergy.value > 0f) Color(0xFF0055FF) else targetColor
+
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        targetColor.copy(alpha = 0.3f * glowIntensity),
-                        targetColor.copy(alpha = 0.1f * glowIntensity),
+                        glowColor.copy(alpha = 0.3f * glowIntensity),
+                        glowColor.copy(alpha = 0.1f * glowIntensity),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = baseRadius * 1.6f
+                    radius = currentBaseRadius * 1.6f
                 ),
-                radius = baseRadius * 1.6f,
+                radius = currentBaseRadius * 1.6f,
                 center = center
             )
 
             // 2. Central Core
-            val coreAlpha = 0.2f + 0.6f * energyLevel.value
+            val coreAlpha = 0.2f + 0.6f * combinedEnergy
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
                         Color.White.copy(alpha = coreAlpha),
-                        targetColor.copy(alpha = coreAlpha * 0.8f),
+                        glowColor.copy(alpha = coreAlpha * 0.8f),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = baseRadius * 0.8f
+                    radius = currentBaseRadius * 0.8f
                 ),
-                radius = baseRadius * 0.8f,
+                radius = currentBaseRadius * 0.8f,
                 center = center,
                 blendMode = BlendMode.Plus
             )
 
-            val rotX = 0.35f
+            // 3D Rotation Math
+            val rotX = userRotX.value
             val sinX = sin(rotX)
             val cosX = cos(rotX)
-            
-            val totalRotY = globalRotY * rotationSpeedMult.value
+
+            val totalRotY = globalRotY + userRotY.value
             val sinY = sin(totalRotY)
             val cosY = cos(totalRotY)
 
             // 3. Particles
             for (i in particles.indices) {
                 val p = particles[i]
-                
-                val currentTheta = p.initialTheta + (time * rotationSpeedMult.value) * p.flowSpeed
-                val currentPhi = p.initialPhi
-                
-                val chaos = sin(currentTheta * 15f + time * 10f) * cos(currentPhi * 15f) * 0.15f * energyLevel.value
-                val r = baseRadius * (p.radiusMult + chaos)
 
+                val currentTheta = p.initialTheta + time * p.flowSpeed
+                val currentPhi = p.initialPhi
+
+                // Chaotic particle vibration on energy surge
+                val chaos = sin(currentTheta * 15f + time * 10f) * cos(currentPhi * 15f) * 0.15f * combinedEnergy
+                val r = currentBaseRadius * (p.radiusMult + chaos)
+
+                // Spherical to Cartesian Coordinates
                 val x0 = r * cos(currentPhi) * cos(currentTheta)
                 val y0 = r * sin(currentPhi)
                 val z0 = r * cos(currentPhi) * sin(currentTheta)
 
+                // Apply Y-axis Rotation (Global + User)
                 val x1 = x0 * cosY - z0 * sinY
                 val z1 = x0 * sinY + z0 * cosY
                 val y1 = y0
 
+                // Apply X-axis Tilt (User)
                 val x2 = x1
                 val y2 = y1 * cosX - z1 * sinX
                 val z2 = y1 * sinX + z1 * cosX
@@ -296,22 +367,26 @@ fun AssistantOrb(
                 val screenX = center.x + x2
                 val screenY = center.y + y2
 
-                val depthNorm = ((z2 + baseRadius) / (2 * baseRadius)).coerceIn(0f, 1f)
+                // Calculate Depth (z ranges roughly from -r to +r)
+                val depthNorm = ((z2 + currentBaseRadius) / (2 * currentBaseRadius)).coerceIn(0f, 1f)
 
+                // Depth & Energy Effects
                 val alphaScale = 0.15f + 0.85f * depthNorm
-                val energyAlphaBoost = 1f + 1.5f * energyLevel.value
-                
-                // Color blending towards target color when active
-                val pColor = if (energyLevel.value > 0.3f) {
-                    androidx.compose.ui.graphics.lerp(p.color, targetColor, energyLevel.value * 0.6f)
+                val energyAlphaBoost = 1f + 1.5f * combinedEnergy
+
+                // Color blending towards state color when state is active
+                val pColor = if (state != AssistantState.IDLE) {
+                    lerp(p.color, targetColor, 0.6f)
                 } else p.color
 
                 val finalAlpha = (pColor.alpha * alphaScale * energyAlphaBoost).coerceIn(0f, 1f)
-                val energySizeBoost = 1f + 0.8f * energyLevel.value
+
+                val energySizeBoost = 1f + 0.8f * combinedEnergy
                 val finalSize = p.baseSize * (0.5f + 0.5f * depthNorm) * energySizeBoost
 
-                val energyPulse = if (p.flowSpeed > 1 && state == AssistantState.PROCESSING) {
-                    0.8f + 0.3f * sin(currentTheta * 5f)
+                // Pulsating energy effect for the fast moving ribbons
+                val energyPulse = if (p.flowSpeed > 1) {
+                    0.8f + 0.2f * sin(currentTheta * 5f)
                 } else 1f
 
                 drawCircle(
@@ -321,7 +396,7 @@ fun AssistantOrb(
                     blendMode = BlendMode.Plus
                 )
             }
-            
+
             // 4. Subtle inner vignette
             drawCircle(
                 brush = Brush.radialGradient(
@@ -331,9 +406,9 @@ fun AssistantOrb(
                         Color(0x33030712)
                     ),
                     center = center,
-                    radius = baseRadius
+                    radius = currentBaseRadius
                 ),
-                radius = baseRadius,
+                radius = currentBaseRadius,
                 center = center
             )
         }
