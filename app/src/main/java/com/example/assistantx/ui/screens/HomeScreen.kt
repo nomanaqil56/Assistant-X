@@ -1,10 +1,5 @@
 package com.example.assistantx.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,53 +32,57 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.assistantx.ui.components.AssistantCard
-import com.example.assistantx.ui.theme.AssistantXTheme
-import com.example.assistantx.ui.theme.TextPrimary
-import com.example.assistantx.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
-
 import com.example.assistantx.core.state.AssistantState
 import com.example.assistantx.core.state.AssistantStateManager
 import com.example.assistantx.engine.CommandEngine
+import com.example.assistantx.engine.models.CommandResult
+import com.example.assistantx.ui.components.AssistantCard
+import com.example.assistantx.ui.components.AssistantSideMenu
+import com.example.assistantx.ui.models.Message
+import com.example.assistantx.ui.models.MessageRole
+import com.example.assistantx.ui.models.MessageStatus
+import com.example.assistantx.ui.theme.AssistantXTheme
+import com.example.assistantx.ui.theme.TextPrimary
+import com.example.assistantx.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 /**
  * Assistant X Main Home Screen.
- * Features a slide-in Side Menu Drawer from the left and a slide-up History Bottom Sheet.
+ * Features a dark glassmorphic interface, AssistantSideMenu drawer,
+ * and a slide-up History Bottom Sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     commandEngine: CommandEngine? = null,
-    stateManager: AssistantStateManager? = null,
-    @Suppress("UNUSED_PARAMETER") onPowerClicked: () -> Unit = {}
+    stateManager: AssistantStateManager? = null
 ) {
     var showHistorySheet by remember { mutableStateOf(false) }
     var showMenuDrawer by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
     // State Observation
     val fallbackFlow = remember { MutableStateFlow(AssistantState.IDLE) }
@@ -92,7 +90,7 @@ fun HomeScreen(
     val assistantState by currentFlow.collectAsState()
 
     // Conversational State
-    val messages = remember { androidx.compose.runtime.mutableStateListOf<com.example.assistantx.ui.models.Message>() }
+    val messages = remember { mutableStateListOf<Message>() }
 
     // Automatically hide keyboard and clear focus whenever menu or history opens
     LaunchedEffect(showMenuDrawer) {
@@ -141,38 +139,42 @@ fun HomeScreen(
                 if (commandEngine == null) return@AssistantCard
 
                 // 1. Add User Message
-                messages.add(com.example.assistantx.ui.models.Message(
-                    role = com.example.assistantx.ui.models.MessageRole.USER,
-                    text = text
-                ))
+                messages.add(
+                    Message(
+                        role = MessageRole.USER,
+                        text = text
+                    )
+                )
 
                 // 2. Add Assistant Pending Message
-                val pendingId = java.util.UUID.randomUUID().toString()
-                messages.add(com.example.assistantx.ui.models.Message(
-                    id = pendingId,
-                    role = com.example.assistantx.ui.models.MessageRole.ASSISTANT,
-                    text = "Processing...",
-                    status = com.example.assistantx.ui.models.MessageStatus.PENDING
-                ))
+                val pendingId = UUID.randomUUID().toString()
+                messages.add(
+                    Message(
+                        id = pendingId,
+                        role = MessageRole.ASSISTANT,
+                        text = "Processing...",
+                        status = MessageStatus.PENDING
+                    )
+                )
 
                 // 3. Execute Command Async
                 coroutineScope.launch {
                     val result = commandEngine.processCommand(text)
-                    
+
                     // 4. Update Pending Message with Result
                     val index = messages.indexOfFirst { it.id == pendingId }
                     if (index != -1) {
                         when (result) {
-                            is com.example.assistantx.engine.models.CommandResult.Success -> {
+                            is CommandResult.Success -> {
                                 messages[index] = messages[index].copy(
                                     text = result.message,
-                                    status = com.example.assistantx.ui.models.MessageStatus.SUCCESS
+                                    status = MessageStatus.SUCCESS
                                 )
                             }
-                            is com.example.assistantx.engine.models.CommandResult.Error -> {
+                            is CommandResult.Error -> {
                                 messages[index] = messages[index].copy(
                                     text = result.message,
-                                    status = com.example.assistantx.ui.models.MessageStatus.ERROR
+                                    status = MessageStatus.ERROR
                                 )
                             }
                         }
@@ -181,78 +183,17 @@ fun HomeScreen(
             }
         )
 
-        // Slide-in Side Menu Drawer from Left
-        AnimatedVisibility(
-            visible = showMenuDrawer,
-            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
-            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Dimmed Scrim Backdrop (tap outside to close)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { showMenuDrawer = false }
-                        )
-                )
-
-                // Frosted Glass Side Drawer (80% width with glassmorphic edge glint and rounded right corners)
-                val drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
-
-                val drawerGlassBrush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color(0xD9121C2B),
-                        Color(0xC80F1724),
-                        Color(0xB30A0F18)
-                    )
-                )
-
-                val drawerBorderBrush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x66FFFFFF),
-                        Color(0x22FFFFFF),
-                        Color(0x10FFFFFF),
-                        Color(0x4438BDF8)
-                    )
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.80f)
-                        .align(Alignment.CenterStart)
-                        .clip(drawerShape)
-                        .background(drawerGlassBrush, drawerShape)
-                        .border(1.dp, drawerBorderBrush, drawerShape)
-                        .drawWithContent {
-                            drawContent()
-                            // Subtle cyan glass flare along the right edge
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(Color(0x3338BDF8), Color.Transparent),
-                                    center = Offset(size.width, size.height * 0.35f),
-                                    radius = size.width * 0.6f
-                                ),
-                                radius = size.width * 0.6f,
-                                center = Offset(size.width, size.height * 0.35f)
-                            )
-                        }
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {} // Consume click inside
-                        )
-                ) {
-                    // Blank drawer section for adding items step-by-step
-                }
+        // Redesigned Glassmorphic Side Menu
+        AssistantSideMenu(
+            isOpen = showMenuDrawer,
+            onDismiss = { showMenuDrawer = false },
+            onNewChat = {
+                messages.clear()
+            },
+            onOpenHistory = {
+                showHistorySheet = true
             }
-        }
+        )
 
         // Slide-up History Bottom Sheet
         if (showHistorySheet) {
@@ -284,12 +225,12 @@ private fun HistorySheetContent(
 ) {
     val sampleHistory = remember {
         listOf(
-            "Explain Quantum Computing in Simple Terms" to "Today, 2:15 PM",
-            "Compose App Architecture Best Practices" to "Yesterday, 6:40 PM",
-            "Summarize Key Meeting Points" to "3 days ago",
-            "Debug Android Translucent Window Issue" to "May 12",
-            "Create Glassmorphic Theme in Jetpack Compose" to "May 10",
-            "Generate Marketing Copy for Assistant X" to "May 08"
+            "Open Camera" to "Today, 2:15 PM",
+            "Launch YouTube" to "Yesterday, 6:40 PM",
+            "Go Home" to "3 days ago",
+            "Open Chrome" to "May 12",
+            "Open Settings" to "May 10",
+            "Launch Maps" to "May 08"
         )
     }
 
