@@ -12,20 +12,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
+import com.example.assistantx.core.state.AssistantStateManager
+import com.example.assistantx.engine.CommandEngine
 import com.example.assistantx.ui.screens.HomeScreen
 import com.example.assistantx.ui.theme.AssistantXTheme
 
-import com.example.assistantx.core.state.AssistantStateManager
-
 class MainActivity : ComponentActivity() {
-    
+
     private lateinit var stateManager: AssistantStateManager
-    private lateinit var commandEngine: com.example.assistantx.engine.CommandEngine
+    private lateinit var commandEngine: CommandEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
 
         // 1. Force the Window Format to purely Translucent regardless of the Theme or OS defaults
         window.setFormat(PixelFormat.TRANSLUCENT)
@@ -37,16 +35,14 @@ class MainActivity : ComponentActivity() {
         window.setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
         window.decorView.setBackgroundColor(AndroidColor.TRANSPARENT)
 
-        // 2. Disable system contrast enforcement so Android doesn't inject dark scrims
+        // 4. Disable system contrast enforcement so Android doesn't inject dark scrims
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
             window.isStatusBarContrastEnforced = false
         }
 
-
-
         stateManager = AssistantStateManager()
-        commandEngine = com.example.assistantx.engine.CommandEngine(this, stateManager)
+        commandEngine = CommandEngine(this, stateManager)
 
         setContent {
             androidx.activity.compose.BackHandler {
@@ -59,8 +55,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     HomeScreen(
                         commandEngine = commandEngine,
-                        stateManager = stateManager,
-                        onPowerClicked = { finish() }
+                        stateManager = stateManager
                     )
                 }
             }
