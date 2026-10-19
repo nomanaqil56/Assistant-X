@@ -39,3 +39,5 @@ Do not redesign the application unnecessarily.
 
 ## Agent Workflow Rules
 - **Automatic Commits:** Always commit after every change. Do not ask for permission to commit; just commit with every change using `git commit -am "..."`.
+- **App Launch / Run Requests:** When the user asks to run or test the app, just build and install the latest version to the device and launch it. Do NOT run a full diagnosis, UI hierarchy dumps, or automated checks unless the user explicitly asks you to debug.
+
