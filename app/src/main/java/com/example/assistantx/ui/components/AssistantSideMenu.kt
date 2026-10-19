@@ -3,7 +3,6 @@ package com.example.assistantx.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
@@ -13,7 +12,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -48,7 +46,6 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -65,8 +62,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -173,7 +168,7 @@ fun AssistantSideMenu(
         )
 
         // --- 2. MAIN CINEMATIC CONTROL PANEL ---
-        val panelShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
+        val panelShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp)
 
         val panelFillBrush = Brush.verticalGradient(
             colors = listOf(
@@ -183,14 +178,8 @@ fun AssistantSideMenu(
             )
         )
 
-        val edgeGlowAlpha = (progress.coerceIn(0.15f, 1f) - 0.15f) / 0.85f
-        val panelBorderBrush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0x2EFFFFFF).copy(alpha = edgeGlowAlpha * 0.35f),
-                Color(0x0EFFFFFF),
-                Color(0x3838BDF8).copy(alpha = edgeGlowAlpha * 0.45f)
-            )
-        )
+        
+        
 
         val slideOffsetX = -((1f - progress) * panelWidthPx).toInt()
         val settleScale = 0.965f + (progress * 0.035f)
@@ -208,27 +197,7 @@ fun AssistantSideMenu(
                 .align(Alignment.CenterStart)
                 .clip(panelShape)
                 .background(panelFillBrush, panelShape)
-                .border(1.dp, panelBorderBrush, panelShape)
-                .drawWithContent {
-                    drawContent()
-                    // Refined hairline cyan glint along right edge
-                    if (edgeGlowAlpha > 0.05f) {
-                        val canvasWidth = this.size.width
-                        val canvasHeight = this.size.height
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0x2238BDF8).copy(alpha = edgeGlowAlpha),
-                                    Color.Transparent
-                                ),
-                                center = Offset(canvasWidth, canvasHeight * 0.32f),
-                                radius = canvasWidth * 0.55f
-                            ),
-                            radius = canvasWidth * 0.55f,
-                            center = Offset(canvasWidth, canvasHeight * 0.32f)
-                        )
-                    }
-                }
+                
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -267,8 +236,7 @@ fun AssistantSideMenu(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(Color(0x1A141E2C))
-                                .border(1.dp, Color(0x4038BDF8), CircleShape),
+                                .background(Color(0x1A141E2C)),
                             contentAlignment = Alignment.Center
                         ) {
                             // Inner singularity glow
@@ -293,12 +261,11 @@ fun AssistantSideMenu(
                                 letterSpacing = 0.4.sp
                             )
                             Text(
-                                text = "AI CONTROL INTERFACE",
+                                text = "PERSONAL ASSISTANT",
                                 color = Color(0xFF38BDF8).copy(alpha = 0.70f),
-                                fontSize = 9.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Medium,
-                                letterSpacing = 1.2.sp,
-                                fontFamily = FontFamily.Monospace
+                                letterSpacing = 0.8.sp
                             )
                         }
                     }
@@ -310,7 +277,6 @@ fun AssistantSideMenu(
                             .size(32.dp)
                             .clip(CircleShape)
                             .background(Color(0x14FFFFFF))
-                            .border(1.dp, Color(0x10FFFFFF), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
@@ -445,7 +411,7 @@ fun AssistantSideMenu(
                     statusTag = "Local",
                     onClick = {
                         infoDialogTitle = "On-Device AI Architecture"
-                        infoDialogMessage = "Assistant X parses intent and dispatches tasks strictly in local device memory. App launcher resolutions and system navigations execute without cloud transmission or external dependencies."
+                        infoDialogMessage = "The current command engine uses an on-device pattern and rule parser. This describes the current command path, not a guarantee that every future feature works offline."
                     },
                     modifier = Modifier.graphicsLayer {
                         alpha = aiStagger.first
@@ -460,7 +426,7 @@ fun AssistantSideMenu(
                     statusTag = "Isolated",
                     onClick = {
                         infoDialogTitle = "Sandboxed Privacy Model"
-                        infoDialogMessage = "Command logs and state caches are stored strictly inside the private application sandbox. No analytics trackers or remote telemetry services are included."
+                        infoDialogMessage = "Command history is stored locally by Assistant X. The current command engine uses on-device pattern and rule matching; individual features may have separate requirements as they are added."
                     },
                     modifier = Modifier.graphicsLayer {
                         alpha = aiStagger.first
@@ -468,31 +434,7 @@ fun AssistantSideMenu(
                     }
                 )
 
-                Spacer(modifier = Modifier.weight(1f, fill = false))
-                Spacer(modifier = Modifier.height(26.dp))
 
-                // --- E. MINIMALIST FOOTER ---
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Assistant X // BUILD 1.0.0",
-                        color = TextTertiary.copy(alpha = 0.60f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.6.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${Build.MANUFACTURER.uppercase()} ${Build.MODEL} • SDK ${Build.VERSION.SDK_INT}",
-                        color = TextTertiary.copy(alpha = 0.40f),
-                        fontSize = 9.5.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
             }
         }
     }
@@ -607,8 +549,6 @@ private fun RealSystemStatusArea(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color(0x1F141E2C), shape)
-            .border(1.dp, Color(0x1838BDF8), shape)
             .clickable(
                 role = Role.Button,
                 onClickLabel = if (isExpanded) "Collapse system status" else "Expand system status",
@@ -635,12 +575,11 @@ private fun RealSystemStatusArea(
                             .background(StatusGreen)
                     )
                     Text(
-                        text = "CORE STATUS: READY",
-                        color = Color(0xFF38BDF8),
+                        text = "ASSISTANT STATUS",
+                        color = TextSecondary,
                         fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.6.sp
                     )
                 }
 
@@ -749,7 +688,7 @@ private fun CinematicNavRow(
     )
 
     val backgroundTint = if (isPressed) Color(0x1C38BDF8) else Color.Transparent
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(8.dp)
 
     Box(
         modifier = modifier
@@ -778,16 +717,14 @@ private fun CinematicNavRow(
             // Icon container with soft cyan ambient tint
             Box(
                 modifier = Modifier
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0x1438BDF8)),
+                    .size(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null, // decorative
                     tint = Color(0xFF38BDF8),
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(19.dp)
                 )
             }
 
