@@ -714,7 +714,7 @@ private fun CinematicNavRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Icon container with soft cyan ambient tint
+            // Unboxed icon keeps the navigation calm and uncluttered
             Box(
                 modifier = Modifier
                     .size(24.dp),
@@ -723,7 +723,7 @@ private fun CinematicNavRow(
                 Icon(
                     imageVector = icon,
                     contentDescription = null, // decorative
-                    tint = Color(0xFF38BDF8),
+                    tint = TextSecondary,
                     modifier = Modifier.size(19.dp)
                 )
             }
@@ -760,12 +760,12 @@ private fun CinematicNavRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0x1438BDF8))
+                        .background(Color(0x0DFFFFFF))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = statusTag,
-                        color = Color(0xFF38BDF8),
+                        color = TextSecondary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium
                     )
