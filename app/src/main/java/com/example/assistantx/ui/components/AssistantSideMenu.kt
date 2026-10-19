@@ -608,7 +608,7 @@ private fun TruthfulStatusArea(
                         assistantState != AssistantState.PERMISSION_REQUIRED
                 )
                 SubsystemInfoRow(
-                    label = "Voice Output (TTS)",
+                    label = "Voice Output",
                     status = if (isTtsReady) "Ready" else "Not ready",
                     isPositive = isTtsReady
                 )
@@ -618,12 +618,12 @@ private fun TruthfulStatusArea(
                     isPositive = false
                 )
                 SubsystemInfoRow(
-                    label = "Local AI Model",
-                    status = "Pattern & Rule Parser",
+                    label = "Local Engine",
+                    status = "Rule Parser",
                     isPositive = true
                 )
                 SubsystemInfoRow(
-                    label = "Accessibility Service",
+                    label = "Accessibility",
                     status = "Not Configured",
                     isPositive = false
                 )
@@ -641,20 +641,22 @@ private fun SubsystemInfoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
+            .padding(vertical = 2.5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
             color = TextSecondary,
-            fontSize = 11.5.sp,
+            fontSize = 11.sp,
+            maxLines = 1,
             modifier = Modifier.weight(1f)
         )
         Text(
             text = status,
             color = if (isPositive) Color(0xFF38BDF8) else TextTertiary,
-            fontSize = 11.5.sp,
+            fontSize = 11.sp,
+            maxLines = 1,
             fontWeight = FontWeight.Medium
         )
     }

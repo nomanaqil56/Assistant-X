@@ -205,7 +205,10 @@ fun HomeScreen(
         AssistantCard(
             messages = messages,
             assistantState = assistantState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
             showContainer = false,
             onHistoryClick = { showHistorySheet = true },
             onMenuClick = { showMenuDrawer = true },
