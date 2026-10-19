@@ -64,7 +64,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -167,8 +166,9 @@ fun AssistantSideMenu(
                 )
         )
 
-        // --- 2. MAIN CINEMATIC CONTROL PANEL ---
-        val panelShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp)
+        // --- 2. BORDERLESS MENU SURFACE ---
+        // The surface and spacing define the edge; no outline or decorative frame.
+        val panelShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
 
         val panelFillBrush = Brush.verticalGradient(
             colors = listOf(
@@ -182,18 +182,13 @@ fun AssistantSideMenu(
         
 
         val slideOffsetX = -((1f - progress) * panelWidthPx).toInt()
-        val settleScale = 0.965f + (progress * 0.035f)
 
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .width(panelWidthDp)
                 .offset { IntOffset(x = slideOffsetX, y = 0) }
-                .graphicsLayer {
-                    scaleX = settleScale
-                    scaleY = settleScale
-                    transformOrigin = TransformOrigin(0f, 0.5f)
-                }
+                // Slide-only motion avoids visible gaps around the panel edges.
                 .align(Alignment.CenterStart)
                 .clip(panelShape)
                 .background(panelFillBrush, panelShape)
@@ -305,7 +300,7 @@ fun AssistantSideMenu(
                 // --- C. PRIMARY NAVIGATION (Staggered Stages 2 & 3) ---
                 val navHeaderStagger = calculateStagger(progress, index = 1, totalItems = 7)
                 Text(
-                    text = "WORKSPACE",
+                    text = "ASSISTANT",
                     color = TextTertiary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -364,7 +359,7 @@ fun AssistantSideMenu(
                 // --- D. SECONDARY CONTROLS / SUBSYSTEMS (Staggered Stages 4 to 7) ---
                 val configHeaderStagger = calculateStagger(progress, index = 4, totalItems = 7)
                 Text(
-                    text = "SUBSYSTEMS & ACCESS",
+                    text = "DEVICE & PRIVACY",
                     color = TextTertiary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -381,7 +376,7 @@ fun AssistantSideMenu(
                 val voiceStagger = calculateStagger(progress, index = 5, totalItems = 7)
                 CinematicNavRow(
                     icon = Icons.Outlined.RecordVoiceOver,
-                    label = "Voice & Speech Engine",
+                    label = "Voice & Speech",
                     trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                     onClick = { openTtsSettings(context) },
                     modifier = Modifier.graphicsLayer {
@@ -394,7 +389,7 @@ fun AssistantSideMenu(
                 val permStagger = calculateStagger(progress, index = 6, totalItems = 7)
                 CinematicNavRow(
                     icon = Icons.Outlined.Security,
-                    label = "Device Permissions",
+                    label = "App Permissions",
                     trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                     onClick = { openAppSettings(context) },
                     modifier = Modifier.graphicsLayer {
@@ -407,8 +402,7 @@ fun AssistantSideMenu(
                 val aiStagger = calculateStagger(progress, index = 7, totalItems = 7)
                 CinematicNavRow(
                     icon = Icons.Outlined.Memory,
-                    label = "On-Device Engine Info",
-                    statusTag = "Local",
+                    label = "AI Engine",
                     onClick = {
                         infoDialogTitle = "On-Device AI Architecture"
                         infoDialogMessage = "The current command engine uses an on-device pattern and rule parser. This describes the current command path, not a guarantee that every future feature works offline."
@@ -422,8 +416,7 @@ fun AssistantSideMenu(
                 // 4. Privacy Policy (Sandboxed Storage)
                 CinematicNavRow(
                     icon = Icons.Outlined.Shield,
-                    label = "Sandbox & Privacy",
-                    statusTag = "Isolated",
+                    label = "Privacy",
                     onClick = {
                         infoDialogTitle = "Sandboxed Privacy Model"
                         infoDialogMessage = "Command history is stored locally by Assistant X. The current command engine uses on-device pattern and rule matching; individual features may have separate requirements as they are added."
@@ -543,12 +536,9 @@ private fun RealSystemStatusArea(
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(12.dp)
-
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
             .clickable(
                 role = Role.Button,
                 onClickLabel = if (isExpanded) "Collapse system status" else "Expand system status",
@@ -563,23 +553,51 @@ private fun RealSystemStatusArea(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val stateColor = when (assistantState) {
+                    AssistantState.ERROR, AssistantState.UNAVAILABLE -> Color(0xFFF87171)
+                    AssistantState.PERMISSION_REQUIRED,
+                    AssistantState.WAITING_FOR_CONFIRMATION -> Color(0xFFFBBF24)
+                    AssistantState.LISTENING,
+                    AssistantState.PROCESSING,
+                    AssistantState.PLANNING,
+                    AssistantState.EXECUTING,
+                    AssistantState.OBSERVING,
+                    AssistantState.VERIFYING,
+                    AssistantState.SPEAKING -> Color(0xFF38BDF8)
+                    AssistantState.IDLE, AssistantState.COMPLETED -> StatusGreen
+                }
+                val stateLabel = when (assistantState) {
+                    AssistantState.IDLE -> "Ready"
+                    AssistantState.LISTENING -> "Listening"
+                    AssistantState.PROCESSING -> "Processing"
+                    AssistantState.PLANNING -> "Planning"
+                    AssistantState.EXECUTING -> "Working"
+                    AssistantState.OBSERVING -> "Observing"
+                    AssistantState.VERIFYING -> "Verifying"
+                    AssistantState.SPEAKING -> "Speaking"
+                    AssistantState.COMPLETED -> "Completed"
+                    AssistantState.ERROR -> "Needs attention"
+                    AssistantState.WAITING_FOR_CONFIRMATION -> "Awaiting confirmation"
+                    AssistantState.PERMISSION_REQUIRED -> "Permission needed"
+                    AssistantState.UNAVAILABLE -> "Unavailable"
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Pulsing micro status dot
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
-                            .background(StatusGreen)
+                            .background(stateColor)
                     )
                     Text(
-                        text = "ASSISTANT STATUS",
-                        color = TextSecondary,
-                        fontSize = 10.5.sp,
+                        text = "STATUS",
+                        color = TextTertiary,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.9.sp
                     )
                 }
 
@@ -588,9 +606,10 @@ private fun RealSystemStatusArea(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = assistantState.name.lowercase().replaceFirstChar { it.uppercase() },
-                        color = TextSecondary,
-                        fontSize = 11.sp
+                        text = stateLabel,
+                        color = stateColor,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
                     )
                     Icon(
                         imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
@@ -657,7 +676,7 @@ private fun RealSubsystemRow(
         )
         Text(
             text = status,
-            color = if (isPositive) Color(0xFF38BDF8) else TextTertiary,
+            color = if (isPositive) TextSecondary else TextTertiary,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium
         )
@@ -673,7 +692,6 @@ private fun CinematicNavRow(
     icon: ImageVector,
     label: String,
     badge: String? = null,
-    statusTag: String? = null,
     trailingIcon: ImageVector? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -687,7 +705,7 @@ private fun CinematicNavRow(
         label = "RowScale"
     )
 
-    val backgroundTint = if (isPressed) Color(0x1C38BDF8) else Color.Transparent
+    val backgroundTint = if (isPressed) Color(0x12FFFFFF) else Color.Transparent
     val shape = RoundedCornerShape(8.dp)
 
     Box(
@@ -706,7 +724,7 @@ private fun CinematicNavRow(
                 role = Role.Button,
                 onClick = onClick
             )
-            .padding(horizontal = 8.dp, vertical = 7.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
@@ -751,23 +769,6 @@ private fun CinematicNavRow(
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
-                    )
-                }
-            }
-
-            // Optional Status Tag
-            if (statusTag != null) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0x0DFFFFFF))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = statusTag,
-                        color = TextSecondary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
                     )
                 }
             }
